@@ -80,6 +80,15 @@
   .nav-tab .tick { display: none; color: #7eb8e8; font-size: 0.7rem; }
   .nav-tab.saved .tick { display: inline; }
 
+  /* ── TAB COMPLETION DOTS ── */
+  .nav-tab .tab-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    display: none; flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .nav-tab.dot-green .tab-dot { display: inline-block; background: #4ade80; }
+  .nav-tab.dot-red   .tab-dot { display: inline-block; background: #f87171; }
+
   /* ── MAIN ── */
   .main { padding: 28px 40px 60px; max-width: 980px; }
   .section { display: none; }
@@ -320,14 +329,14 @@
 
 <!-- ══ NAV TABS ══ -->
 <div class="section-nav">
-  <div class="nav-tab active" onclick="showSection(0)">1 · Baseline <span class="tick">✓</span></div>
-  <div class="nav-tab" onclick="showSection(1)">2 · Phenotype <span class="tick">✓</span></div>
-  <div class="nav-tab" onclick="showSection(2)">3 · Severity <span class="tick">✓</span></div>
-  <div class="nav-tab" onclick="showSection(3)">4 · Labs <span class="tick">✓</span></div>
-  <div class="nav-tab" onclick="showSection(4)">5 · Comorbidities <span class="tick">✓</span></div>
-  <div class="nav-tab" onclick="showSection(5)">6 · Drug Triggers <span class="tick">✓</span></div>
-  <div class="nav-tab" onclick="showSection(6)">7 · Treatment <span class="tick">✓</span></div>
-  <div class="nav-tab" onclick="showSection(7)">8 · Outcomes <span class="tick">✓</span></div>
+  <div class="nav-tab active" onclick="showSection(0)">1 · Baseline <span class="tick">✓</span><span class="tab-dot"></span></div>
+  <div class="nav-tab" onclick="showSection(1)">2 · Phenotype <span class="tick">✓</span><span class="tab-dot"></span></div>
+  <div class="nav-tab" onclick="showSection(2)">3 · Severity <span class="tick">✓</span><span class="tab-dot"></span></div>
+  <div class="nav-tab" onclick="showSection(3)">4 · Labs <span class="tick">✓</span><span class="tab-dot"></span></div>
+  <div class="nav-tab" onclick="showSection(4)">5 · Comorbidities <span class="tick">✓</span><span class="tab-dot"></span></div>
+  <div class="nav-tab" onclick="showSection(5)">6 · Drug Triggers <span class="tick">✓</span><span class="tab-dot"></span></div>
+  <div class="nav-tab" onclick="showSection(6)">7 · Treatment <span class="tick">✓</span><span class="tab-dot"></span></div>
+  <div class="nav-tab" onclick="showSection(7)">8 · Outcomes <span class="tick">✓</span><span class="tab-dot"></span></div>
 </div>
 
 <div class="main">
@@ -996,6 +1005,7 @@ function syncPID(val) {
     pidProfile = null;
     hideVerifyCard();
     setPidBadge('', '');
+    clearTabDots();
   }
 }
 
@@ -1044,7 +1054,35 @@ async function lookupPID(pid) {
   }
 }
 
-function setPidBadge(type, text) {
+// ── Tab completion dots ──
+// Maps sheet name (as returned by lookup, spaces not underscores) to tab index
+const SHEET_TAB_MAP = {
+  'Patient Baseline':   0,
+  'Clinical Phenotype': 1,
+  'Disease Severity':   2,
+  'Diagnostics Labs':   3,
+  'Comorbidities':      4,
+  'Drug Triggers':      5,
+  'Treatment Courses':  6,
+  'Outcomes':           7
+};
+
+function updateTabDots(sheetsFound) {
+  // Clear all dots first
+  navTabs.forEach(t => {
+    t.classList.remove('dot-green', 'dot-red');
+  });
+  if (!sheetsFound) return;
+
+  const foundSet = new Set(sheetsFound);
+  Object.entries(SHEET_TAB_MAP).forEach(([name, idx]) => {
+    navTabs[idx].classList.add(foundSet.has(name) ? 'dot-green' : 'dot-red');
+  });
+}
+
+function clearTabDots() {
+  navTabs.forEach(t => t.classList.remove('dot-green', 'dot-red'));
+}
   const el = document.getElementById('pid-status');
   el.className = 'pid-status' + (type ? ' ' + type : '');
   el.textContent = text;
@@ -1067,6 +1105,7 @@ function showVerifyCardNew(pid) {
       <strong>${pid}</strong> has not been entered before. All sections will create new records.
     </div>`;
   pidConfirmed = true; // new patient needs no confirmation
+  updateTabDots([]); // all red — nothing filled yet
   updateSaveLocks();
 }
 
@@ -1130,6 +1169,7 @@ function showVerifyCardExisting(pid, data) {
       I confirm this is the correct patient — proceed with saving
     </label>`;
 
+  updateTabDots(data.sheets_found || []);
   pidConfirmed = false;
   updateSaveLocks();
 }
@@ -1337,6 +1377,8 @@ async function submitSection(idx) {
       lastStatus = json.status;
     }
     navTabs[idx].classList.add('saved');
+    navTabs[idx].classList.remove('dot-red');
+    navTabs[idx].classList.add('dot-green');
     const action = lastStatus === 'updated' ? 'Updated' : 'Saved';
     showToast(`✓ ${action}: ${SHEET_NAMES[idx].replace(/_/g, ' ')}`, 'success');
   } catch(e) {
