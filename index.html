@@ -349,6 +349,51 @@
   }
   .btn-new-patient:hover { color: #fff; border-color: rgba(255,255,255,0.6); }
 
+  /* ── PASSWORD GATE ── */
+  .password-gate {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 0;
+  }
+  .password-gate.hidden { display: none; }
+  .password-box {
+    background: #fff; border-radius: 6px;
+    padding: 36px 40px; width: 340px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .password-box h2 {
+    font-family: var(--mono); font-size: 0.85rem;
+    font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .password-box p {
+    font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;
+  }
+  .password-box input {
+    font-family: var(--mono); font-size: 1rem;
+    border: 2px solid var(--border); border-radius: var(--radius);
+    padding: 10px 14px; width: 100%; letter-spacing: 0.1em;
+  }
+  .password-box input:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
+  }
+  .password-box button {
+    font-family: var(--mono); font-size: 0.72rem; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    background: var(--accent); color: #fff;
+    border: none; padding: 11px; border-radius: var(--radius);
+    cursor: pointer; transition: background 0.15s;
+  }
+  .password-box button:hover { background: #0f2a47; }
+  .password-error {
+    font-family: var(--mono); font-size: 0.68rem;
+    color: var(--error); display: none; text-align: center;
+  }
+  .password-error.show { display: block; }
+
   @media (max-width: 640px) {
     .header, .main { padding-left: 16px; padding-right: 16px; }
     .section-nav { padding: 0 16px; }
@@ -359,6 +404,18 @@
 </style>
 </head>
 <body>
+
+<!-- ══ PASSWORD GATE ══ -->
+<div class="password-gate" id="password-gate">
+  <div class="password-box">
+    <h2>BP Registry</h2>
+    <p>Enter the access password to continue. Contact the registry administrator if you don't have it.</p>
+    <input type="password" id="password-input" placeholder="Password"
+      onkeydown="if(event.key==='Enter') checkPassword()">
+    <button onclick="checkPassword()">→ Enter</button>
+    <div class="password-error" id="password-error">Incorrect password — try again</div>
+  </div>
+</div>
 
 <!-- ══ HEADER ══ -->
 <div class="header" style="position:relative">
@@ -1004,6 +1061,54 @@
 // ══════════════════════════════════════════════════════════════
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxGrS2zX74tPRCMkV44V8vu4gFQMYSrDlh6SAD-wJEdjm1-5t2gAlm22KR3-HibabMFrw/exec';
 const SECRET_TOKEN    = 'BPReg2024Hd7xQmVk9';
+
+// ══════════════════════════════════════════════════════════════
+//  PASSWORD GATE
+//  The actual password is never stored here — only its SHA-256
+//  hash. To generate a new hash: open browser console and run:
+//    crypto.subtle.digest('SHA-256', new TextEncoder().encode('yourpassword'))
+//      .then(b => console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
+//
+//  Current password hash — replace with your own:
+const PASSWORD_HASH = '8d295894f51dc143bf085fb33fe1c070d47c5b3ea0f2493b07b617f7ac81a13b';
+
+// Session persists for 8 hours — user won't be asked again
+const SESSION_KEY  = 'bp_registry_auth';
+const SESSION_HOURS = 8;
+
+async function hashPassword(pwd) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd));
+  return [...new Uint8Array(buf)].map(x => x.toString(16).padStart(2,'0')).join('');
+}
+
+async function checkPassword() {
+  const input = document.getElementById('password-input').value;
+  const hash  = await hashPassword(input);
+  if (hash === PASSWORD_HASH) {
+    // Store session with expiry
+    const expiry = Date.now() + SESSION_HOURS * 60 * 60 * 1000;
+    sessionStorage.setItem(SESSION_KEY, expiry);
+    document.getElementById('password-gate').classList.add('hidden');
+    document.getElementById('password-input').value = '';
+  } else {
+    const err = document.getElementById('password-error');
+    err.classList.add('show');
+    document.getElementById('password-input').value = '';
+    document.getElementById('password-input').focus();
+    setTimeout(() => err.classList.remove('show'), 3000);
+  }
+}
+
+// Check session on load — skip gate if still valid
+(function checkSession() {
+  const expiry = sessionStorage.getItem(SESSION_KEY);
+  if (expiry && Date.now() < parseInt(expiry)) {
+    document.getElementById('password-gate').classList.add('hidden');
+  } else {
+    // Focus the password field
+    setTimeout(() => document.getElementById('password-input')?.focus(), 100);
+  }
+})();
 
 const SHEET_NAMES = [
   'Patient_Baseline', 'Clinical_Phenotype', 'Disease_Severity',
