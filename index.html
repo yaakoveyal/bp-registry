@@ -307,7 +307,9 @@
   <div class="header-bottom">
     <div class="pid-bar">
       <label>BP-ID</label>
-      <input type="text" id="global-pid" placeholder="BP-0001" oninput="syncPID(this.value)" onblur="lookupPID(this.value)">
+      <input type="text" id="global-pid" placeholder="BP-0001"
+        oninput="syncPID(this.value)"
+        onblur="onPIDBlur(this.value)">
       <span class="pid-status checking" id="pid-status"></span>
     </div>
     <div class="collector-bar">
@@ -995,19 +997,28 @@ function showSection(idx) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ── PID sync ──
+// ── PID sync (fires on every keystroke — only syncs the pid-fields) ──
 function syncPID(val) {
   document.querySelectorAll('.pid-field').forEach(f => f.value = val);
-  // Reset state if PID changed after a lookup
-  if (val !== lastLookedUpPID) {
-    pidState = 'unknown';
-    pidConfirmed = false;
-    pidProfile = null;
-    hideVerifyCard();
-    setPidBadge('', '');
-    clearTabDots();
-    resetAllFields();
-  }
+}
+
+// ── PID blur (fires when user leaves the field — resets + looks up) ──
+function onPIDBlur(val) {
+  val = val.trim();
+  if (!val || val === lastLookedUpPID) return;
+
+  // New PID — clear everything first, then look up
+  pidState = 'unknown';
+  pidConfirmed = false;
+  pidProfile = null;
+  hideVerifyCard();
+  setPidBadge('', '');
+  clearTabDots();
+  resetAllFields();
+  // Re-sync pid fields after reset (reset clears them)
+  document.querySelectorAll('.pid-field').forEach(f => f.value = val);
+
+  lookupPID(val);
 }
 
 // ══════════════════════════════════════════════
@@ -1162,12 +1173,9 @@ function prefillFromLookup(data) {
 // ══════════════════════════════════════════════
 async function lookupPID(pid) {
   pid = pid.trim();
-  if (!pid || pid === lastLookedUpPID) return;
-  if (!/^BP-\d{4}$/.test(pid)) return;
+  if (!pid || !/^BP-\d{4}$/.test(pid)) return;
 
   lastLookedUpPID = pid;
-  pidState = 'unknown';
-  pidConfirmed = false;
   setPidBadge('checking', '⟳ Checking…');
 
   try {
@@ -1490,7 +1498,7 @@ async function submitSection(idx) {
   // Force lookup if user never triggered blur (e.g. paste + immediate click)
   if (pid !== lastLookedUpPID) {
     showToast('Verifying patient ID…', 'loading');
-    await lookupPID(pid);
+    await onPIDBlur(pid);
     // After lookup, check lock state
     if ((pidState === 'exists' || pidState === 'partial') && !pidConfirmed) {
       showToast('Please confirm patient identity first', 'error');
