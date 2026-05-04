@@ -953,39 +953,22 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 //  CONFIGURATION
-// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxGrS2zX74tPRCMkV44V8vu4gFQMYSrDlh6SAD-wJEdjm1-5t2gAlm22KR3-HibabMFrw/exec';
 const SECRET_TOKEN    = 'BPReg2024Hd7xQmVk9';
 
 const SHEET_NAMES = [
-  'Patient_Baseline',
-  'Clinical_Phenotype',
-  'Disease_Severity',
-  'Diagnostics_Labs',
-  'Comorbidities',
-  'Drug_Triggers',
-  'Treatment_Courses',
-  'Outcomes'
+  'Patient_Baseline', 'Clinical_Phenotype', 'Disease_Severity',
+  'Diagnostics_Labs', 'Comorbidities', 'Drug_Triggers',
+  'Treatment_Courses', 'Outcomes'
 ];
-
-// Sheets that overwrite on duplicate (static data)
-const STATIC_SHEETS = new Set([0, 1, 3, 4, 5, 7]);
-// Sheets that append on duplicate (longitudinal data)
-const LONGITUDINAL_SHEETS = new Set([2, 6]);
-
-// ── Patient lookup state ──
-// 'unknown' | 'new' | 'exists' | 'partial'
-let pidState = 'unknown';
-let pidProfile = null;      // baseline data if found
-let pidConfirmed = false;   // checkbox ticked
-let lastLookedUpPID = '';
 
 // ── Navigation ──
 let currentSection = 0;
 const sections = document.querySelectorAll('.section');
-const navTabs = document.querySelectorAll('.nav-tab');
+const navTabs   = document.querySelectorAll('.nav-tab');
 
 function showSection(idx) {
   sections.forEach(s => s.classList.remove('active'));
@@ -997,86 +980,85 @@ function showSection(idx) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ── PID sync (fires on every keystroke — only syncs the pid-fields) ──
+// ══════════════════════════════════════════════════════════════
+//  PATIENT LOOKUP STATE
+// ══════════════════════════════════════════════════════════════
+let pidState     = 'unknown'; // 'unknown' | 'new' | 'exists' | 'partial'
+let pidConfirmed = false;
+let lastLookedUpPID = '';
+
+// ── PID sync — fires on every keystroke, only mirrors value ──
 function syncPID(val) {
   document.querySelectorAll('.pid-field').forEach(f => f.value = val);
 }
 
-// ── PID blur (fires when user leaves the field — resets + looks up) ──
-function onPIDBlur(val) {
-  val = val.trim();
-  if (!val || val === lastLookedUpPID) return;
+// ── PID blur — fires on leave, triggers reset + lookup ──
+async function onPIDBlur(rawVal) {
+  const val = rawVal.trim();
+  if (!val) return;
+  if (val === lastLookedUpPID) return;
+  if (!/^BP-\d{4}$/.test(val)) return;
 
-  // New PID — clear everything first, then look up
-  pidState = 'unknown';
-  pidConfirmed = false;
-  pidProfile = null;
+  // Reset UI and fields for new patient
   hideVerifyCard();
   setPidBadge('', '');
   clearTabDots();
   resetAllFields();
-  // Re-sync pid fields after reset (reset clears them)
+  // Re-populate the pid fields after reset wiped them
+  document.getElementById('global-pid').value = val;
   document.querySelectorAll('.pid-field').forEach(f => f.value = val);
 
-  lookupPID(val);
+  await lookupPID(val);
 }
 
-// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 //  RESET ALL FIELDS
-// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 function resetAllFields() {
-  // Text / number / date inputs (except header controls)
+  // Clear all text/number/date inputs inside .main
   document.querySelectorAll('.main input[type=text], .main input[type=number], .main input[type=date]')
     .forEach(el => { el.value = ''; });
-
-  // Selects
+  // Reset selects
   document.querySelectorAll('.main select')
     .forEach(el => { el.selectedIndex = 0; });
-
-  // Radios + checkboxes
+  // Uncheck all radios + checkboxes and remove selected style
   document.querySelectorAll('.main input[type=radio], .main input[type=checkbox]')
     .forEach(el => {
       el.checked = false;
       el.closest('.radio-opt, .check-opt')?.classList.remove('selected');
     });
-
-  // BPDAI total display
-  const bpdaiTotal = document.getElementById('bpdai-total');
-  if (bpdaiTotal) bpdaiTotal.textContent = '—';
-
-  // Reset treatment lines to a single blank line
+  // Reset BPDAI display
+  const bt = document.getElementById('bpdai-total');
+  if (bt) bt.textContent = '—';
+  // Reset treatment lines
   lineCount = 0;
-  document.getElementById('treatment-lines').innerHTML = '';
-  addTreatmentLine();
-
-  // Clear saved ticks from nav tabs
+  const tl = document.getElementById('treatment-lines');
+  if (tl) { tl.innerHTML = ''; addTreatmentLine(); }
+  // Clear nav saved ticks
   navTabs.forEach(t => t.classList.remove('saved'));
+  // Reset state
+  pidState     = 'unknown';
+  pidConfirmed = false;
+  updateSaveLocks();
 }
 
-// ── Helper: set a radio button by name + value ──
+// ══════════════════════════════════════════════════════════════
+//  PREFILL HELPERS
+// ══════════════════════════════════════════════════════════════
 function setRadio(name, value) {
   if (!value) return;
   const el = document.querySelector(`input[name="${name}"][value="${value}"]`);
-  if (el) {
-    el.checked = true;
-    el.closest('.radio-opt')?.classList.add('selected');
-  }
+  if (el) { el.checked = true; el.closest('.radio-opt')?.classList.add('selected'); }
 }
 
-// ── Helper: set checkboxes by name from comma-separated string ──
 function setCheckboxes(name, csvValue) {
   if (!csvValue) return;
-  const values = csvValue.split(',').map(v => v.trim());
-  values.forEach(v => {
+  csvValue.split(',').map(v => v.trim()).forEach(v => {
     const el = document.querySelector(`input[name="${name}"][value="${v}"]`);
-    if (el) {
-      el.checked = true;
-      el.closest('.check-opt')?.classList.add('selected');
-    }
+    if (el) { el.checked = true; el.closest('.check-opt')?.classList.add('selected'); }
   });
 }
 
-// ── Helper: set a select by value ──
 function setSelect(id, value) {
   const el = document.getElementById(id);
   if (!el || !value) return;
@@ -1087,45 +1069,35 @@ function setSelect(id, value) {
   }
 }
 
-// ══════════════════════════════════════════════
-//  PREFILL FROM LOOKUP DATA
-// ══════════════════════════════════════════════
 function prefillFromLookup(data) {
-  // ── Section 1: Baseline ──
   if (data.baseline) {
     const b = data.baseline;
-    setRadio('sex', b.Sex);
-    document.getElementById('age-dx').value   = b.Age_at_Diagnosis  || '';
-    document.getElementById('dx-year').value  = b.Year_of_Diagnosis || '';
-    setSelect('ethnicity', b.Ethnicity);
-    setSelect('frailty',   b.Frailty_Score);
+    setRadio('sex',          b.Sex);
+    document.getElementById('age-dx').value  = b.Age_at_Diagnosis  || '';
+    document.getElementById('dx-year').value = b.Year_of_Diagnosis || '';
+    setSelect('ethnicity',   b.Ethnicity);
+    setSelect('frailty',     b.Frailty_Score);
   }
-
-  // ── Section 2: Clinical Phenotype ──
   if (data.phenotype) {
     const p = data.phenotype;
-    setSelect('clinical-variant', p.Clinical_Variant);
-    setRadio('mucosal',          p.Mucosal_Involvement);
-    setCheckboxes('dist',        p.Anatomic_Distribution);
-    setRadio('pruritus-present', p.Pruritus_Present);
+    setSelect('clinical-variant',    p.Clinical_Variant);
+    setRadio('mucosal',              p.Mucosal_Involvement);
+    setCheckboxes('dist',            p.Anatomic_Distribution);
+    setRadio('pruritus-present',     p.Pruritus_Present);
   }
-
-  // ── Section 4: Diagnostics & Labs ──
   if (data.labs) {
     const l = data.labs;
-    document.getElementById('lab-year').value    = l.Year_of_Labs          || '';
-    setRadio('dif-igg',                            l.DIF_IgG);
-    setRadio('dif-c3',                             l.DIF_C3);
-    setRadio('iif',                                l.IIF_Result);
-    setSelect('iif-titer',                         l.IIF_Titer);
-    document.getElementById('bp180').value        = l.Anti_BP180_IgG       || '';
-    document.getElementById('bp230').value        = l.Anti_BP230_IgG       || '';
-    document.getElementById('total-ige').value    = l.Total_IgE            || '';
-    document.getElementById('eosinophils').value  = l.Absolute_Eosinophils || '';
-    document.getElementById('albumin').value      = l.Albumin              || '';
+    document.getElementById('lab-year').value   = l.Year_of_Labs          || '';
+    setRadio('dif-igg',                           l.DIF_IgG);
+    setRadio('dif-c3',                            l.DIF_C3);
+    setRadio('iif',                               l.IIF_Result);
+    setSelect('iif-titer',                        l.IIF_Titer);
+    document.getElementById('bp180').value       = l.Anti_BP180_IgG       || '';
+    document.getElementById('bp230').value       = l.Anti_BP230_IgG       || '';
+    document.getElementById('total-ige').value   = l.Total_IgE            || '';
+    document.getElementById('eosinophils').value = l.Absolute_Eosinophils || '';
+    document.getElementById('albumin').value     = l.Albumin              || '';
   }
-
-  // ── Section 5: Comorbidities ──
   if (data.comorbidities) {
     const c = data.comorbidities;
     setRadio('antipsych',       c.Antipsychotic_Treatment);
@@ -1137,8 +1109,6 @@ function prefillFromLookup(data) {
     setRadio('malig',           c.Active_Malignancy);
     setRadio('autoimm',         c.Autoimmune_Disease);
   }
-
-  // ── Section 6: Drug Triggers ──
   if (data.drug_triggers) {
     const d = data.drug_triggers;
     setRadio('drug-trigger',    d.Suspected_Drug_Trigger);
@@ -1147,99 +1117,57 @@ function prefillFromLookup(data) {
     setRadio('drug-dc',         d.Drug_Discontinued);
     setRadio('drug-improv',     d.Improvement_After_Withdrawal);
   }
-
-  // ── Section 8: Outcomes ──
   if (data.outcomes) {
     const o = data.outcomes;
-    document.getElementById('followup-months').value = o.Followup_Duration_Months       || '';
+    document.getElementById('followup-months').value = o.Followup_Duration_Months      || '';
     setRadio('crot',    o.Complete_Remission_Off_Therapy);
     setRadio('crmt',    o.Complete_Remission_On_Minimal_Therapy);
-    document.getElementById('time-remission').value  = o.Time_to_First_Remission_Weeks  || '';
+    document.getElementById('time-remission').value  = o.Time_to_First_Remission_Weeks || '';
     setRadio('pr',      o.Partial_Remission);
     setRadio('nr',      o.Non_Responder);
     setRadio('relapse', o.Relapse);
-    document.getElementById('time-relapse').value    = o.Time_to_First_Relapse_Weeks    || '';
-    document.getElementById('n-relapses').value      = o.Number_of_Relapses             || '';
+    document.getElementById('time-relapse').value    = o.Time_to_First_Relapse_Weeks   || '';
+    document.getElementById('n-relapses').value      = o.Number_of_Relapses            || '';
     setSelect('relapse-context', o.Relapse_Context);
-    document.getElementById('n-hosp').value          = o.Number_of_Hospitalizations     || '';
+    document.getElementById('n-hosp').value          = o.Number_of_Hospitalizations    || '';
     setRadio('sepsis',  o.Sepsis);
-    document.getElementById('months-to-death').value = o.Months_to_Death                || '';
+    document.getElementById('months-to-death').value = o.Months_to_Death               || '';
     setSelect('cause-death', o.Cause_of_Death);
   }
 }
 
-// ══════════════════════════════════════════════
-//  PID LOOKUP
-// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+//  LOOKUP
+// ══════════════════════════════════════════════════════════════
 async function lookupPID(pid) {
-  pid = pid.trim();
-  if (!pid || !/^BP-\d{4}$/.test(pid)) return;
-
   lastLookedUpPID = pid;
   setPidBadge('checking', '⟳ Checking…');
-
   try {
-    const params = new URLSearchParams({
-      token: SECRET_TOKEN,
-      action: 'lookup',
-      pid: pid
-    });
+    const params = new URLSearchParams({ token: SECRET_TOKEN, action: 'lookup', pid });
     const resp = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
     const json = await resp.json();
-
-    if (json.status === 'error') {
-      setPidBadge('', '');
-      hideVerifyCard();
-      return;
-    }
+    if (json.status === 'error') { setPidBadge('', ''); return; }
 
     if (json.found) {
       pidState = json.baseline ? 'exists' : 'partial';
-      pidProfile = json.baseline || null;
       setPidBadge('exists', '⚠ Existing patient');
       prefillFromLookup(json);
       showVerifyCardExisting(pid, json);
     } else {
       pidState = 'new';
-      pidProfile = null;
       setPidBadge('new', '✓ New patient');
       showVerifyCardNew(pid);
     }
   } catch(e) {
     setPidBadge('', '');
-    hideVerifyCard();
   }
+  updateSaveLocks();
 }
 
-// ── Tab completion dots ──
-// Maps sheet name (as returned by lookup, spaces not underscores) to tab index
-const SHEET_TAB_MAP = {
-  'Patient Baseline':   0,
-  'Clinical Phenotype': 1,
-  'Disease Severity':   2,
-  'Diagnostics Labs':   3,
-  'Comorbidities':      4,
-  'Drug Triggers':      5,
-  'Treatment Courses':  6,
-  'Outcomes':           7
-};
-
-function updateTabDots(sheetsFound) {
-  // Clear all dots first
-  navTabs.forEach(t => {
-    t.classList.remove('dot-green', 'dot-red');
-  });
-  if (!sheetsFound) return;
-
-  const foundSet = new Set(sheetsFound);
-  Object.entries(SHEET_TAB_MAP).forEach(([name, idx]) => {
-    navTabs[idx].classList.add(foundSet.has(name) ? 'dot-green' : 'dot-red');
-  });
-}
-
-function clearTabDots() {
-  navTabs.forEach(t => t.classList.remove('dot-green', 'dot-red'));
-}
+// ══════════════════════════════════════════════════════════════
+//  VERIFICATION CARD
+// ══════════════════════════════════════════════════════════════
+function setPidBadge(type, text) {
   const el = document.getElementById('pid-status');
   el.className = 'pid-status' + (type ? ' ' + type : '');
   el.textContent = text;
@@ -1255,90 +1183,88 @@ function showVerifyCardNew(pid) {
   const card = document.getElementById('verify-card');
   card.className = 'verify-card new-pid show';
   card.style.display = 'block';
-  document.getElementById('verify-icon').textContent = '✓';
+  document.getElementById('verify-icon').textContent  = '✓';
   document.getElementById('verify-title').textContent = 'New Patient — No Existing Record';
   document.getElementById('verify-body').innerHTML = `
     <div class="verify-subinfo">
       <strong>${pid}</strong> has not been entered before. All sections will create new records.
     </div>`;
-  pidConfirmed = true; // new patient needs no confirmation
-  updateTabDots([]); // all red — nothing filled yet
+  pidConfirmed = true;
+  updateTabDots([]);
   updateSaveLocks();
 }
 
 function showVerifyCardExisting(pid, data) {
   const card = document.getElementById('verify-card');
-  const hasBaseline = !!data.baseline;
   card.className = 'verify-card warning show';
   card.style.display = 'block';
-  document.getElementById('verify-icon').textContent = '⚠';
+  document.getElementById('verify-icon').textContent  = '⚠';
   document.getElementById('verify-title').textContent = 'Existing Patient Found — Verify Before Saving';
 
   let profileHTML = '';
-  if (hasBaseline) {
+  if (data.baseline) {
     const b = data.baseline;
-    profileHTML = `
-      <div class="verify-profile">
-        <div class="verify-profile-item">
-          <span class="verify-profile-label">Sex</span>
-          <span class="verify-profile-val">${b.Sex || '—'}</span>
-        </div>
-        <div class="verify-profile-item">
-          <span class="verify-profile-label">Age at Dx</span>
-          <span class="verify-profile-val">${b.Age_at_Diagnosis || '—'} yrs</span>
-        </div>
-        <div class="verify-profile-item">
-          <span class="verify-profile-label">Year of Dx</span>
-          <span class="verify-profile-val">${b.Year_of_Diagnosis || '—'}</span>
-        </div>
-        <div class="verify-profile-item">
-          <span class="verify-profile-label">Ethnicity</span>
-          <span class="verify-profile-val">${b.Ethnicity || '—'}</span>
-        </div>
-        <div class="verify-profile-item">
-          <span class="verify-profile-label">Collector</span>
-          <span class="verify-profile-val">${b.Collector || '—'}</span>
-        </div>
-      </div>`;
+    profileHTML = `<div class="verify-profile">
+      <div class="verify-profile-item"><span class="verify-profile-label">Sex</span><span class="verify-profile-val">${b.Sex||'—'}</span></div>
+      <div class="verify-profile-item"><span class="verify-profile-label">Age at Dx</span><span class="verify-profile-val">${b.Age_at_Diagnosis||'—'} yrs</span></div>
+      <div class="verify-profile-item"><span class="verify-profile-label">Year of Dx</span><span class="verify-profile-val">${b.Year_of_Diagnosis||'—'}</span></div>
+      <div class="verify-profile-item"><span class="verify-profile-label">Ethnicity</span><span class="verify-profile-val">${b.Ethnicity||'—'}</span></div>
+      <div class="verify-profile-item"><span class="verify-profile-label">Collector</span><span class="verify-profile-val">${b.Collector||'—'}</span></div>
+    </div>`;
   } else {
-    profileHTML = `<div class="verify-subinfo">⚠ Found in other sheets but <strong>no Baseline entry</strong> yet — record may be incomplete.</div>`;
+    profileHTML = `<div class="verify-subinfo">⚠ Found in other sheets but <strong>no Baseline entry</strong> yet.</div>`;
   }
 
-  // Sheet presence summary
   const sheetsFound = data.sheets_found || [];
   const sheetSummary = sheetsFound.length
-    ? `<div class="verify-subinfo" style="margin-bottom:10px">Data exists in: <strong>${sheetsFound.join(', ')}</strong></div>`
-    : '';
+    ? `<div class="verify-subinfo" style="margin-bottom:10px">Data exists in: <strong>${sheetsFound.join(', ')}</strong></div>` : '';
 
-  // Longitudinal counts
   let longInfo = '';
-  if (data.severity_count > 0)
-    longInfo += `<div class="verify-subinfo">Disease Severity: <strong>${data.severity_count}</strong> existing assessment(s) — saving will <em>add</em> a new one.</div>`;
-  if (data.treatment_count > 0)
-    longInfo += `<div class="verify-subinfo">Treatment Courses: <strong>${data.treatment_count}</strong> existing line(s) — saving will <em>add</em> a new line.</div>`;
+  if (data.severity_count  > 0) longInfo += `<div class="verify-subinfo">Disease Severity: <strong>${data.severity_count}</strong> existing assessment(s) — saving will <em>add</em> a new one.</div>`;
+  if (data.treatment_count > 0) longInfo += `<div class="verify-subinfo">Treatment Courses: <strong>${data.treatment_count}</strong> existing line(s) — saving will <em>add</em> a new line.</div>`;
 
   document.getElementById('verify-body').innerHTML = `
-    ${profileHTML}
-    ${sheetSummary}
-    ${longInfo}
+    ${profileHTML}${sheetSummary}${longInfo}
     <label class="verify-confirm" id="verify-confirm-label">
       <input type="checkbox" id="verify-checkbox" onchange="onConfirmChange(this)">
       I confirm this is the correct patient — proceed with saving
     </label>`;
 
-  updateTabDots(data.sheets_found || []);
   pidConfirmed = false;
+  updateTabDots(sheetsFound);
   updateSaveLocks();
 }
 
 function onConfirmChange(cb) {
   pidConfirmed = cb.checked;
-  const label = document.getElementById('verify-confirm-label');
-  if (label) label.classList.toggle('checked', cb.checked);
+  document.getElementById('verify-confirm-label')?.classList.toggle('checked', cb.checked);
   updateSaveLocks();
 }
 
-// ── Lock/unlock all Save buttons based on confirmation state ──
+// ══════════════════════════════════════════════════════════════
+//  TAB DOTS
+// ══════════════════════════════════════════════════════════════
+const SHEET_TAB_MAP = {
+  'Patient Baseline': 0, 'Clinical Phenotype': 1, 'Disease Severity': 2,
+  'Diagnostics Labs': 3, 'Comorbidities': 4, 'Drug Triggers': 5,
+  'Treatment Courses': 6, 'Outcomes': 7
+};
+
+function updateTabDots(sheetsFound) {
+  navTabs.forEach(t => t.classList.remove('dot-green', 'dot-red'));
+  const found = new Set(sheetsFound);
+  Object.entries(SHEET_TAB_MAP).forEach(([name, idx]) => {
+    navTabs[idx].classList.add(found.has(name) ? 'dot-green' : 'dot-red');
+  });
+}
+
+function clearTabDots() {
+  navTabs.forEach(t => t.classList.remove('dot-green', 'dot-red'));
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SAVE LOCK
+// ══════════════════════════════════════════════════════════════
 function updateSaveLocks() {
   const locked = (pidState === 'exists' || pidState === 'partial') && !pidConfirmed;
   document.querySelectorAll('.btn-submit').forEach(btn => {
@@ -1348,33 +1274,32 @@ function updateSaveLocks() {
   });
 }
 
-// ── BPDAI calc ──
+// ══════════════════════════════════════════════════════════════
+//  BPDAI + CS CALCS
+// ══════════════════════════════════════════════════════════════
 function calcBPDAI() {
-  const skin = parseFloat(document.getElementById('bpdai-skin').value) || 0;
+  const skin   = parseFloat(document.getElementById('bpdai-skin').value)   || 0;
   const mucosa = parseFloat(document.getElementById('bpdai-mucosa').value) || 0;
   document.getElementById('bpdai-total').textContent = (skin + mucosa) || '—';
 }
 
-// ── Cumulative CS calc ──
 function calcCumulativeCS(el) {
   const tRow = el.closest('.treatment-row');
   if (!tRow) return;
-  const start = tRow.querySelector('.cs-start')?.value;
-  const end = tRow.querySelector('.cs-end')?.value;
+  const start   = tRow.querySelector('.cs-start')?.value;
+  const end     = tRow.querySelector('.cs-end')?.value;
   const maxDose = parseFloat(tRow.querySelector('.cs-maxdose')?.value) || 0;
   const avgDose = parseFloat(tRow.querySelector('.cs-avgdose')?.value) || 0;
-  const dose = avgDose || maxDose;
+  const dose    = avgDose || maxDose;
   const display = tRow.querySelector('.cs-cumulative');
   if (!display) return;
   if (start && end && dose) {
     const days = Math.round((new Date(end) - new Date(start)) / 86400000);
     display.textContent = days > 0 ? (dose * days).toLocaleString() : '—';
-  } else {
-    display.textContent = '—';
-  }
+  } else { display.textContent = '—'; }
 }
 
-// ── Radio visual ──
+// ── Radio/checkbox visual handler ──
 document.addEventListener('change', e => {
   const opt = e.target.closest('.radio-opt, .check-opt');
   if (!opt) return;
@@ -1388,7 +1313,9 @@ document.addEventListener('change', e => {
   else opt.classList.remove('selected');
 });
 
-// ── Toast ──
+// ══════════════════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════════════════
 function showToast(msg, type = 'loading') {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -1396,7 +1323,9 @@ function showToast(msg, type = 'loading') {
   if (type !== 'loading') setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-// ── Helpers: read radio / checkbox ──
+// ══════════════════════════════════════════════════════════════
+//  DATA COLLECTION HELPERS
+// ══════════════════════════════════════════════════════════════
 function getRadio(name) {
   const el = document.querySelector(`input[name="${name}"]:checked`);
   return el ? el.value : '';
@@ -1410,53 +1339,47 @@ function val(id) {
   return el ? el.value : '';
 }
 
-// ── Collect data per section ──
+// ══════════════════════════════════════════════════════════════
+//  COLLECT SECTION DATA
+// ══════════════════════════════════════════════════════════════
 function collectSection(idx) {
-  const pid = document.getElementById('global-pid').value.trim();
+  const pid       = document.getElementById('global-pid').value.trim();
   const collector = document.getElementById('collector-name').value.trim();
-  const ts = new Date().toISOString();
+  const ts        = new Date().toISOString();
 
-  switch(idx) {
-    case 0: return {
-      sheet: SHEET_NAMES[0],
-      row: [pid, getRadio('sex'), val('age-dx'), val('dx-year'),
-            val('ethnicity'), val('frailty'), collector, ts]
-    };
-    case 1: return {
-      sheet: SHEET_NAMES[1],
-      row: [pid, val('clinical-variant'), getRadio('mucosal'),
-            getCheckboxes('dist'), getRadio('pruritus-present'), collector, ts]
-    };
-    case 2: return {
-      sheet: SHEET_NAMES[2],
-      row: [pid, val('assess-type'), val('months-since-dx'),
-            val('bpdai-skin'), val('bpdai-mucosa'),
-            document.getElementById('bpdai-total').textContent.replace('—',''),
-            val('pruritus-nrs'), val('dlqi'), collector, ts]
-    };
-    case 3: return {
-      sheet: SHEET_NAMES[3],
-      row: [pid, val('lab-year'), getRadio('dif-igg'), getRadio('dif-c3'),
-            getRadio('iif'), val('iif-titer'), val('bp180'), val('bp230'),
-            val('total-ige'), val('eosinophils'), val('albumin'), collector, ts]
-    };
-    case 4: return {
-      sheet: SHEET_NAMES[4],
-      row: [pid, getRadio('antipsych'), val('neuro-year'),
-            getCheckboxes('neuro'), getRadio('dm'), getRadio('htn'),
-            getRadio('ihd'), getRadio('malig'), getRadio('autoimm'), collector, ts]
-    };
-    case 5: return {
-      sheet: SHEET_NAMES[5],
-      row: [pid, getRadio('drug-trigger'), val('trigger-class'),
-            val('trigger-drug'), getRadio('drug-dc'),
-            getRadio('drug-improv'), collector, ts]
-    };
+  switch (idx) {
+    case 0: return { sheet: SHEET_NAMES[0], row: [
+      pid, getRadio('sex'), val('age-dx'), val('dx-year'),
+      val('ethnicity'), val('frailty'), collector, ts
+    ]};
+    case 1: return { sheet: SHEET_NAMES[1], row: [
+      pid, val('clinical-variant'), getRadio('mucosal'),
+      getCheckboxes('dist'), getRadio('pruritus-present'), collector, ts
+    ]};
+    case 2: return { sheet: SHEET_NAMES[2], row: [
+      pid, val('assess-type'), val('months-since-dx'),
+      val('bpdai-skin'), val('bpdai-mucosa'),
+      document.getElementById('bpdai-total').textContent.replace('—',''),
+      val('pruritus-nrs'), val('dlqi'), collector, ts
+    ]};
+    case 3: return { sheet: SHEET_NAMES[3], row: [
+      pid, val('lab-year'), getRadio('dif-igg'), getRadio('dif-c3'),
+      getRadio('iif'), val('iif-titer'), val('bp180'), val('bp230'),
+      val('total-ige'), val('eosinophils'), val('albumin'), collector, ts
+    ]};
+    case 4: return { sheet: SHEET_NAMES[4], row: [
+      pid, getRadio('antipsych'), val('neuro-year'),
+      getCheckboxes('neuro'), getRadio('dm'), getRadio('htn'),
+      getRadio('ihd'), getRadio('malig'), getRadio('autoimm'), collector, ts
+    ]};
+    case 5: return { sheet: SHEET_NAMES[5], row: [
+      pid, getRadio('drug-trigger'), val('trigger-class'),
+      val('trigger-drug'), getRadio('drug-dc'), getRadio('drug-improv'), collector, ts
+    ]};
     case 6: {
-      // Collect all treatment lines
       const lines = [];
       document.querySelectorAll('.treatment-row').forEach((row, i) => {
-        const get = cls => row.querySelector(cls)?.value || '';
+        const get   = cls => row.querySelector(cls)?.value || '';
         const cumEl = row.querySelector('.cs-cumulative');
         lines.push([
           pid, i + 1,
@@ -1472,39 +1395,29 @@ function collectSection(idx) {
       });
       return { sheet: SHEET_NAMES[6], rows: lines };
     }
-    case 7: return {
-      sheet: SHEET_NAMES[7],
-      row: [pid, val('followup-months'),
-            getRadio('crot'), getRadio('crmt'), val('time-remission'),
-            getRadio('pr'), getRadio('nr'), getRadio('relapse'),
-            val('time-relapse'), val('n-relapses'), val('relapse-context'),
-            val('n-hosp'), getRadio('sepsis'),
-            val('months-to-death'), val('cause-death'), collector, ts]
-    };
+    case 7: return { sheet: SHEET_NAMES[7], row: [
+      pid, val('followup-months'),
+      getRadio('crot'), getRadio('crmt'), val('time-remission'),
+      getRadio('pr'), getRadio('nr'), getRadio('relapse'),
+      val('time-relapse'), val('n-relapses'), val('relapse-context'),
+      val('n-hosp'), getRadio('sepsis'),
+      val('months-to-death'), val('cause-death'), collector, ts
+    ]};
   }
 }
 
-// ── Submit section ──
+// ══════════════════════════════════════════════════════════════
+//  SUBMIT SECTION
+// ══════════════════════════════════════════════════════════════
 async function submitSection(idx) {
   const pid = document.getElementById('global-pid').value.trim();
   if (!pid) { showToast('Enter a BP-ID first', 'error'); return; }
-  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes('YOUR_APPS_SCRIPT')) {
-    showToast('Apps Script URL not configured', 'error'); return;
-  }
-  if (!/^BP-\d{4}$/.test(pid)) {
-    showToast('BP-ID must be BP-XXXX (e.g. BP-0042)', 'error'); return;
-  }
+  if (!/^BP-\d{4}$/.test(pid)) { showToast('BP-ID must be BP-XXXX (e.g. BP-0042)', 'error'); return; }
 
-  // Force lookup if user never triggered blur (e.g. paste + immediate click)
+  // If user never blurred (e.g. paste + immediate click), run lookup now
   if (pid !== lastLookedUpPID) {
     showToast('Verifying patient ID…', 'loading');
     await onPIDBlur(pid);
-    // After lookup, check lock state
-    if ((pidState === 'exists' || pidState === 'partial') && !pidConfirmed) {
-      showToast('Please confirm patient identity first', 'error');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
   }
 
   if ((pidState === 'exists' || pidState === 'partial') && !pidConfirmed) {
@@ -1513,8 +1426,7 @@ async function submitSection(idx) {
     return;
   }
 
-  const btns = document.querySelectorAll('.btn-submit');
-  btns.forEach(b => { b.disabled = true; b.style.opacity = '0.6'; });
+  document.querySelectorAll('.btn-submit').forEach(b => { b.disabled = true; b.style.opacity = '0.6'; });
   showToast('Saving…', 'loading');
 
   const payload    = collectSection(idx);
@@ -1523,33 +1435,27 @@ async function submitSection(idx) {
 
   try {
     for (const row of rowsToSend) {
-      const params = new URLSearchParams({
-        token: SECRET_TOKEN,
-        sheet: payload.sheet,
-        row:   JSON.stringify(row)
-      });
-      const resp = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
-      const json = await resp.json();
+      const params = new URLSearchParams({ token: SECRET_TOKEN, sheet: payload.sheet, row: JSON.stringify(row) });
+      const resp   = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
+      const json   = await resp.json();
       if (json.status === 'error') throw new Error(json.message);
       lastStatus = json.status;
     }
     navTabs[idx].classList.add('saved');
     navTabs[idx].classList.remove('dot-red');
     navTabs[idx].classList.add('dot-green');
-    const action = lastStatus === 'updated' ? 'Updated' : 'Saved';
-    showToast(`✓ ${action}: ${SHEET_NAMES[idx].replace(/_/g, ' ')}`, 'success');
+    showToast(`✓ ${lastStatus === 'updated' ? 'Updated' : 'Saved'}: ${SHEET_NAMES[idx].replace(/_/g,' ')}`, 'success');
   } catch(e) {
     showToast('Error: ' + (e.message || 'check connection'), 'error');
   } finally {
-    btns.forEach(b => {
-      b.disabled = false;
-      b.style.opacity = '1';
-      updateSaveLocks(); // re-apply lock state after save
-    });
+    document.querySelectorAll('.btn-submit').forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+    updateSaveLocks();
   }
 }
 
-// ── Treatment line builder ──
+// ══════════════════════════════════════════════════════════════
+//  TREATMENT LINE BUILDER
+// ══════════════════════════════════════════════════════════════
 let lineCount = 0;
 function buildTreatmentLine(n) {
   return `
@@ -1558,8 +1464,7 @@ function buildTreatmentLine(n) {
       <span class="line-badge">LINE ${n}</span>
     </div>
     <div class="form-grid cols-3">
-      <div class="field">
-        <label>Drug Name</label>
+      <div class="field"><label>Drug Name</label>
         <select class="tx-drug">
           <option value="">— Select —</option>
           <optgroup label="Corticosteroids">
@@ -1578,51 +1483,42 @@ function buildTreatmentLine(n) {
           <option>Other</option>
         </select>
       </div>
-      <div class="field">
-        <label>Route</label>
+      <div class="field"><label>Route</label>
         <select class="tx-route">
           <option>Oral</option><option>IV pulse</option>
           <option>Topical</option><option>Subcutaneous</option>
         </select>
       </div>
-      <div class="field">
-        <label>Initial Dose <span class="hint">mg/kg</span></label>
+      <div class="field"><label>Initial Dose <span class="hint">mg/kg</span></label>
         <input type="number" class="tx-dose" placeholder="e.g. 0.5" step="0.1" min="0">
       </div>
-      <div class="field">
-        <label>Start Date</label>
+      <div class="field"><label>Start Date</label>
         <input type="date" class="cs-start" oninput="calcCumulativeCS(this)">
       </div>
-      <div class="field">
-        <label>End Date</label>
+      <div class="field"><label>End Date</label>
         <input type="date" class="cs-end" oninput="calcCumulativeCS(this)">
       </div>
-      <div class="field">
-        <label>Max Pred. Dose <span class="hint">mg/day</span></label>
+      <div class="field"><label>Max Pred. Dose <span class="hint">mg/day</span></label>
         <input type="number" class="cs-maxdose" min="0" oninput="calcCumulativeCS(this)">
       </div>
-      <div class="field">
-        <label>Avg Daily Dose <span class="hint">mg/day, if tapered</span></label>
+      <div class="field"><label>Avg Daily Dose <span class="hint">mg/day, if tapered</span></label>
         <input type="number" class="cs-avgdose" min="0" oninput="calcCumulativeCS(this)">
       </div>
       <div class="score-visual">
         <div class="score-label">Cumulative CS (mg)</div>
         <div class="score-val cs-cumulative">—</div>
       </div>
-      <div class="field">
-        <label>Concomitant IS</label>
+      <div class="field"><label>Concomitant IS</label>
         <input type="text" class="tx-concomitant" placeholder="e.g. AZA 100mg">
       </div>
-      <div class="field">
-        <label>Biologic</label>
+      <div class="field"><label>Biologic</label>
         <select class="tx-biologic">
           <option value="">None</option>
           <option>Dupilumab</option><option>Rituximab</option>
           <option>Omalizumab</option><option>Other</option>
         </select>
       </div>
-      <div class="field">
-        <label>Clinical Response</label>
+      <div class="field"><label>Clinical Response</label>
         <select class="tx-response">
           <option value="">—</option>
           <option>Complete response</option>
@@ -1630,20 +1526,16 @@ function buildTreatmentLine(n) {
           <option>No response</option>
         </select>
       </div>
-      <div class="field">
-        <label>Time to Response <span class="hint">weeks</span></label>
+      <div class="field"><label>Time to Response <span class="hint">weeks</span></label>
         <input type="number" class="tx-time-response" min="0">
       </div>
-      <div class="field">
-        <label>Taper Duration <span class="hint">weeks</span></label>
+      <div class="field"><label>Taper Duration <span class="hint">weeks</span></label>
         <input type="number" class="tx-taper" min="0">
       </div>
-      <div class="field">
-        <label>Time to &lt;10mg Pred. <span class="hint">weeks</span></label>
+      <div class="field"><label>Time to &lt;10mg Pred. <span class="hint">weeks</span></label>
         <input type="number" class="tx-sub10" min="0">
       </div>
-      <div class="field span-3">
-        <label>Adverse Event / Reason for Discontinuation</label>
+      <div class="field span-3"><label>Adverse Event / Reason for Discontinuation</label>
         <input type="text" class="tx-ae">
       </div>
     </div>
@@ -1655,7 +1547,7 @@ function addTreatmentLine() {
   document.getElementById('treatment-lines').insertAdjacentHTML('beforeend', buildTreatmentLine(lineCount));
 }
 
-// Init first treatment line
+// Init
 addTreatmentLine();
 </script>
 </body>
