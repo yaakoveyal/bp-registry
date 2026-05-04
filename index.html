@@ -364,7 +364,7 @@
 <div class="header" style="position:relative">
   <div class="header-top">
     <h1>Bullous Pemphigoid Registry</h1>
-    <span class="header-subtitle">De-identified · EMR Extraction Form · v2.0</span>
+    <span class="header-subtitle">De-identified · EMR Extraction Form · v3.0</span>
   </div>
   <div class="header-bottom">
     <div class="pid-bar">
@@ -1439,7 +1439,7 @@ function hasSectionData(idx) {
       if (!firstRow) return false;
       return !!(firstRow.querySelector('.tx-drug')?.value || firstRow.querySelector('.tx-route')?.value);
     }
-    case 7: return !!(val('followup-months') || getRadio('crot') || getRadio('relapse'));
+    case 7: return !!(val('followup-date') || getRadio('crot') || getRadio('relapse'));
   }
   return false;
 }
@@ -1590,6 +1590,7 @@ function buildSeverityCard(n) {
       <div class="score-visual" style="display:flex;flex-direction:column;justify-content:center;">
         <div class="score-label">Months Since Dx</div>
         <div class="score-val sev-months-display" style="font-size:1rem;">—</div>
+        <input type="hidden" class="sev-months">
       </div>
       <div class="field">
         <label>Pruritus NRS <span class="hint">0–10</span></label>
@@ -1872,53 +1873,6 @@ function collectSection(idx) {
       val('months-to-death'),     val('cause-death'),
       collector, ts
     ]};
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-//  SUBMIT SECTION
-// ══════════════════════════════════════════════════════════════
-async function submitSection(idx) {
-  const pid = document.getElementById('global-pid').value.trim();
-  if (!pid) { showToast('Enter a BP-ID first', 'error'); return; }
-  if (!/^BP-\d{4}$/.test(pid)) { showToast('BP-ID must be BP-XXXX (e.g. BP-0042)', 'error'); return; }
-
-  if (pid !== lastLookedUpPID) {
-    showToast('Verifying patient ID…', 'loading');
-    await onPIDBlur(pid);
-  }
-
-  if ((pidState === 'exists' || pidState === 'partial') && !pidConfirmed) {
-    showToast('Tick the confirmation checkbox first', 'error');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    return;
-  }
-
-  const btn = document.getElementById('btn-save-all');
-  if (btn) { btn.disabled = true; }
-  showToast('Saving…', 'loading');
-
-  const payload    = collectSection(idx);
-  const rowsToSend = payload.rows || [payload.row];
-  let lastStatus   = '';
-
-  try {
-    for (const row of rowsToSend) {
-      const params = new URLSearchParams({ token: SECRET_TOKEN, sheet: payload.sheet, row: JSON.stringify(row) });
-      const resp   = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
-      const json   = await resp.json();
-      if (json.status === 'error') throw new Error(json.message);
-      lastStatus = json.status;
-    }
-    navTabs[idx].classList.add('saved');
-    navTabs[idx].classList.remove('dot-red');
-    navTabs[idx].classList.add('dot-green');
-    showToast(`✓ ${lastStatus === 'updated' ? 'Updated' : 'Saved'}: ${SHEET_NAMES[idx].replace(/_/g,' ')}`, 'success');
-  } catch(e) {
-    showToast('Error: ' + (e.message || 'check connection'), 'error');
-  } finally {
-    if (btn) { btn.disabled = false; }
-    updateSaveLocks();
   }
 }
 
