@@ -369,7 +369,7 @@
   <div class="header-bottom">
     <div class="pid-bar">
       <label>BP-ID</label>
-      <input type="text" id="global-pid" placeholder="BP-0001"
+      <input type="text" id="global-pid" placeholder="e.g. 1 or BP-0001"
         oninput="syncPID(this.value)"
         onkeydown="if(event.key==='Enter'){this.blur();}"
         onblur="onPIDBlur(this.value)">
@@ -1027,8 +1027,16 @@ function syncPID(val) {
 
 // ── PID blur — fires on leave, triggers reset + lookup ──
 async function onPIDBlur(rawVal) {
-  const val = rawVal.trim();
+  let val = rawVal.trim();
   if (!val) return;
+
+  // Auto-format: if user typed just a number, pad and prepend BP-
+  if (/^\d{1,4}$/.test(val)) {
+    val = 'BP-' + val.padStart(4, '0');
+    document.getElementById('global-pid').value = val;
+    syncPID(val);
+  }
+
   if (val === lastLookedUpPID) return;
   if (!/^BP-\d{4}$/.test(val)) return;
 
