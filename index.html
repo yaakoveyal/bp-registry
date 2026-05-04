@@ -440,8 +440,8 @@
       <input type="number" id="age-dx" placeholder="e.g. 74" min="0" max="120">
     </div>
     <div class="field">
-      <label>Year of Diagnosis <span class="req">*</span></label>
-      <input type="number" id="dx-year" placeholder="e.g. 2019" min="1990" max="2030">
+      <label>Date of Diagnosis <span class="req">*</span></label>
+      <input type="date" id="dx-date" onchange="onDxDateChange()">
     </div>
     <div class="field">
       <label>Ethnicity</label>
@@ -867,8 +867,13 @@
       <input type="text" class="pid-field" placeholder="BP-0001">
     </div>
     <div class="field">
-      <label>Follow-up Duration <span class="hint">months from diagnosis</span></label>
-      <input type="number" id="followup-months" min="0" placeholder="e.g. 24">
+      <label>Last Follow-up Date</label>
+      <input type="date" id="followup-date" oninput="calcFollowupMonths()">
+    </div>
+    <div class="score-visual" style="display:flex;flex-direction:column;justify-content:center;">
+      <div class="score-label">Follow-up (months)</div>
+      <div class="score-val" id="followup-months-display" style="font-size:1rem;">—</div>
+      <input type="hidden" id="followup-months">
     </div>
   </div>
   <div class="subsection">
@@ -903,8 +908,13 @@
         </div>
       </div>
       <div class="field">
-        <label>Time to First Remission <span class="hint">weeks</span></label>
-        <input type="number" id="time-remission" min="0" placeholder="e.g. 8">
+        <label>Date of First Remission</label>
+        <input type="date" id="date-remission" oninput="calcRemissionWeeks()">
+      </div>
+      <div class="score-visual" style="display:flex;flex-direction:column;justify-content:center;">
+        <div class="score-label">Weeks to Remission</div>
+        <div class="score-val" id="time-remission-display" style="font-size:1rem;">—</div>
+        <input type="hidden" id="time-remission">
       </div>
     </div>
   </div>
@@ -919,8 +929,13 @@
         </div>
       </div>
       <div class="field">
-        <label>Time to First Relapse <span class="hint">weeks from remission</span></label>
-        <input type="number" id="time-relapse" min="0" placeholder="e.g. 30">
+        <label>Date of First Relapse</label>
+        <input type="date" id="date-relapse" oninput="calcRelapseWeeks()">
+      </div>
+      <div class="score-visual" style="display:flex;flex-direction:column;justify-content:center;">
+        <div class="score-label">Weeks to Relapse</div>
+        <div class="score-val" id="time-relapse-display" style="font-size:1rem;">—</div>
+        <input type="hidden" id="time-relapse">
       </div>
       <div class="field">
         <label>Number of Relapses</label>
@@ -1122,7 +1137,12 @@ function prefillFromLookup(data) {
     const b = data.baseline;
     setRadio('sex',          b.Sex);
     document.getElementById('age-dx').value  = b.Age_at_Diagnosis  || '';
-    document.getElementById('dx-year').value = b.Year_of_Diagnosis || '';
+    // Prefill dx-date: reconstruct from year if full date not stored
+    if (b.Date_of_Diagnosis) {
+      document.getElementById('dx-date').value = b.Date_of_Diagnosis;
+    } else if (b.Year_of_Diagnosis) {
+      document.getElementById('dx-date').value = b.Year_of_Diagnosis + '-01-01';
+    }
     setSelect('ethnicity',   b.Ethnicity);
     setSelect('frailty',     b.Frailty_Score);
   }
@@ -1169,20 +1189,24 @@ function prefillFromLookup(data) {
   }
   if (data.outcomes) {
     const o = data.outcomes;
-    document.getElementById('followup-months').value = o.Followup_Duration_Months      || '';
+    if (o.Last_Followup_Date) document.getElementById('followup-date').value = o.Last_Followup_Date;
     setRadio('crot',    o.Complete_Remission_Off_Therapy);
     setRadio('crmt',    o.Complete_Remission_On_Minimal_Therapy);
-    document.getElementById('time-remission').value  = o.Time_to_First_Remission_Weeks || '';
+    if (o.Date_of_First_Remission) document.getElementById('date-remission').value = o.Date_of_First_Remission;
     setRadio('pr',      o.Partial_Remission);
     setRadio('nr',      o.Non_Responder);
     setRadio('relapse', o.Relapse);
-    document.getElementById('time-relapse').value    = o.Time_to_First_Relapse_Weeks   || '';
+    if (o.Date_of_First_Relapse) document.getElementById('date-relapse').value = o.Date_of_First_Relapse;
     document.getElementById('n-relapses').value      = o.Number_of_Relapses            || '';
     setSelect('relapse-context', o.Relapse_Context);
     document.getElementById('n-hosp').value          = o.Number_of_Hospitalizations    || '';
     setRadio('sepsis',  o.Sepsis);
     document.getElementById('months-to-death').value = o.Months_to_Death               || '';
     setSelect('cause-death', o.Cause_of_Death);
+    // Recalculate derived fields after prefill
+    calcFollowupMonths();
+    calcRemissionWeeks();
+    calcRelapseWeeks();
   }
 }
 
@@ -1400,7 +1424,7 @@ function updateSaveLocks() {
 // ══════════════════════════════════════════════════════════════
 function hasSectionData(idx) {
   switch (idx) {
-    case 0: return !!(getRadio('sex') || val('age-dx') || val('dx-year'));
+    case 0: return !!(getRadio('sex') || val('age-dx') || val('dx-date'));
     case 1: return !!(val('clinical-variant') || getRadio('mucosal') || getCheckboxes('dist'));
     case 2: {
       const first = document.querySelector('.severity-card');
@@ -1560,8 +1584,12 @@ function buildSeverityCard(n) {
         </select>
       </div>
       <div class="field">
-        <label>Months Since Diagnosis <span class="hint">0 = at diagnosis</span></label>
-        <input type="number" class="sev-months" min="0" placeholder="e.g. 0">
+        <label>Assessment Date <span class="req">*</span></label>
+        <input type="date" class="sev-date" oninput="calcSeverityMonths(this)">
+      </div>
+      <div class="score-visual" style="display:flex;flex-direction:column;justify-content:center;">
+        <div class="score-label">Months Since Dx</div>
+        <div class="score-val sev-months-display" style="font-size:1rem;">—</div>
       </div>
       <div class="field">
         <label>Pruritus NRS <span class="hint">0–10</span></label>
@@ -1607,6 +1635,101 @@ function calcSeverityTotal(el) {
 
 // Keep old calcBPDAI as no-op (IDs removed from DOM)
 function calcBPDAI() {}
+
+// ══════════════════════════════════════════════════════════════
+//  DATE CALCULATIONS
+// ══════════════════════════════════════════════════════════════
+
+// Returns diagnosis date as a Date object (from dx-date field)
+function getDxDate() {
+  const v = document.getElementById('dx-date')?.value;
+  return v ? new Date(v) : null;
+}
+
+// Baseline: when dx-date changes, nothing to display but store it
+function onDxDateChange() {
+  // Recalculate all severity cards in case they have dates
+  document.querySelectorAll('.severity-card').forEach(card => {
+    const dateEl = card.querySelector('.sev-date');
+    if (dateEl?.value) calcSeverityMonths(dateEl);
+  });
+  calcFollowupMonths();
+  calcRemissionWeeks();
+  calcRelapseWeeks();
+}
+
+// Days between two dates
+function daysBetween(d1, d2) {
+  return Math.round((d2 - d1) / 86400000);
+}
+
+// Severity: calculate months since diagnosis from assessment date
+function calcSeverityMonths(el) {
+  const card    = el.closest('.severity-card');
+  const display = card.querySelector('.sev-months-display');
+  const hidden  = card.querySelector('.sev-months');
+  const dxDate  = getDxDate();
+  const assDate = el.value ? new Date(el.value) : null;
+  if (dxDate && assDate && assDate >= dxDate) {
+    const months = Math.round(daysBetween(dxDate, assDate) / 30.44);
+    if (display) display.textContent = months;
+    if (hidden)  hidden.value = months;
+  } else {
+    if (display) display.textContent = '—';
+    if (hidden)  hidden.value = '';
+  }
+}
+
+// Outcomes: follow-up months
+function calcFollowupMonths() {
+  const dxDate  = getDxDate();
+  const fuDate  = document.getElementById('followup-date')?.value
+    ? new Date(document.getElementById('followup-date').value) : null;
+  const display = document.getElementById('followup-months-display');
+  const hidden  = document.getElementById('followup-months');
+  if (dxDate && fuDate && fuDate >= dxDate) {
+    const months = Math.round(daysBetween(dxDate, fuDate) / 30.44);
+    if (display) display.textContent = months;
+    if (hidden)  hidden.value = months;
+  } else {
+    if (display) display.textContent = '—';
+    if (hidden)  hidden.value = '';
+  }
+}
+
+// Outcomes: weeks to first remission
+function calcRemissionWeeks() {
+  const dxDate  = getDxDate();
+  const remDate = document.getElementById('date-remission')?.value
+    ? new Date(document.getElementById('date-remission').value) : null;
+  const display = document.getElementById('time-remission-display');
+  const hidden  = document.getElementById('time-remission');
+  if (dxDate && remDate && remDate >= dxDate) {
+    const weeks = Math.round(daysBetween(dxDate, remDate) / 7);
+    if (display) display.textContent = weeks;
+    if (hidden)  hidden.value = weeks;
+  } else {
+    if (display) display.textContent = '—';
+    if (hidden)  hidden.value = '';
+  }
+}
+
+// Outcomes: weeks to first relapse (from diagnosis)
+function calcRelapseWeeks() {
+  const dxDate  = getDxDate();
+  const relDate = document.getElementById('date-relapse')?.value
+    ? new Date(document.getElementById('date-relapse').value) : null;
+  const display = document.getElementById('time-relapse-display');
+  const hidden  = document.getElementById('time-relapse');
+  if (dxDate && relDate && relDate >= dxDate) {
+    const weeks = Math.round(daysBetween(dxDate, relDate) / 7);
+    if (display) display.textContent = weeks;
+    if (hidden)  hidden.value = weeks;
+  } else {
+    if (display) display.textContent = '—';
+    if (hidden)  hidden.value = '';
+  }
+}
 
 function calcCumulativeCS(el) {
   const tRow = el.closest('.treatment-row');
@@ -1673,10 +1796,14 @@ function collectSection(idx) {
   const ts        = new Date().toISOString();
 
   switch (idx) {
-    case 0: return { sheet: SHEET_NAMES[0], row: [
-      pid, getRadio('sex'), val('age-dx'), val('dx-year'),
-      val('ethnicity'), val('frailty'), collector, ts
-    ]};
+    case 0: {
+      const dxDate  = val('dx-date');
+      const dxYear  = dxDate ? new Date(dxDate).getFullYear() : '';
+      return { sheet: SHEET_NAMES[0], row: [
+        pid, getRadio('sex'), val('age-dx'), dxYear,
+        val('ethnicity'), val('frailty'), collector, ts
+      ]};
+    }
     case 1: return { sheet: SHEET_NAMES[1], row: [
       pid, val('clinical-variant'), getRadio('mucosal'),
       getCheckboxes('dist'), getRadio('pruritus-present'), collector, ts
@@ -1684,13 +1811,14 @@ function collectSection(idx) {
     case 2: {
       const rows = [];
       document.querySelectorAll('.severity-card').forEach(card => {
-        const skin   = card.querySelector('.sev-skin')?.value   || '';
-        const mucosa = card.querySelector('.sev-mucosa')?.value || '';
-        const total  = card.querySelector('.sev-total')?.textContent.replace('—','') || '';
+        const skin    = card.querySelector('.sev-skin')?.value   || '';
+        const mucosa  = card.querySelector('.sev-mucosa')?.value || '';
+        const total   = card.querySelector('.sev-total')?.textContent.replace('—','') || '';
+        const months  = card.querySelector('.sev-months')?.value || '';
         rows.push([
           pid,
           card.querySelector('.sev-type')?.value   || '',
-          card.querySelector('.sev-months')?.value || '',
+          months,
           skin, mucosa, total,
           card.querySelector('.sev-nrs')?.value    || '',
           card.querySelector('.sev-dlqi')?.value   || '',
@@ -1733,12 +1861,16 @@ function collectSection(idx) {
       return { sheet: SHEET_NAMES[6], rows: lines };
     }
     case 7: return { sheet: SHEET_NAMES[7], row: [
-      pid, val('followup-months'),
-      getRadio('crot'), getRadio('crmt'), val('time-remission'),
-      getRadio('pr'), getRadio('nr'), getRadio('relapse'),
-      val('time-relapse'), val('n-relapses'), val('relapse-context'),
-      val('n-hosp'), getRadio('sepsis'),
-      val('months-to-death'), val('cause-death'), collector, ts
+      pid,
+      val('followup-months'),     val('followup-date'),
+      getRadio('crot'),           getRadio('crmt'),
+      val('date-remission'),      val('time-remission'),
+      getRadio('pr'),             getRadio('nr'),
+      getRadio('relapse'),        val('date-relapse'),      val('time-relapse'),
+      val('n-relapses'),          val('relapse-context'),
+      val('n-hosp'),              getRadio('sepsis'),
+      val('months-to-death'),     val('cause-death'),
+      collector, ts
     ]};
   }
 }
