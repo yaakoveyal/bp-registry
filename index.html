@@ -517,55 +517,16 @@
     <span class="section-title">Disease Severity</span>
     <span class="section-note">→ Disease_Severity</span>
   </div>
-  <div class="form-grid cols-3">
+  <div class="form-grid" style="margin-bottom:18px">
     <div class="field">
       <label>BP-ID <span class="req">*</span></label>
       <input type="text" class="pid-field" placeholder="BP-0001">
     </div>
-    <div class="field">
-      <label>Assessment Type <span class="req">*</span></label>
-      <select id="assess-type">
-        <option>Baseline (Diagnosis)</option>
-        <option>Follow-up</option>
-        <option>Remission</option>
-        <option>Relapse</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Months Since Diagnosis <span class="hint">0 = at diagnosis</span></label>
-      <input type="number" id="months-since-dx" min="0" placeholder="e.g. 0">
-    </div>
   </div>
-  <div class="subsection">
-    <div class="subsection-title">BPDAI</div>
-    <div class="form-grid cols-3">
-      <div class="field">
-        <label>BPDAI Skin <span class="hint">0–120</span></label>
-        <input type="number" id="bpdai-skin" min="0" max="120" oninput="calcBPDAI()">
-      </div>
-      <div class="field">
-        <label>BPDAI Mucosa <span class="hint">0–120</span></label>
-        <input type="number" id="bpdai-mucosa" min="0" max="120" oninput="calcBPDAI()">
-      </div>
-      <div class="score-visual">
-        <div class="score-label">BPDAI Total</div>
-        <div class="score-val" id="bpdai-total">—</div>
-      </div>
-    </div>
+  <div id="severity-assessments">
+    <!-- Cards injected by JS -->
   </div>
-  <div class="subsection">
-    <div class="subsection-title">Patient-Reported</div>
-    <div class="form-grid cols-3">
-      <div class="field">
-        <label>Pruritus NRS <span class="hint">0–10</span></label>
-        <input type="number" id="pruritus-nrs" min="0" max="10" placeholder="0–10">
-      </div>
-      <div class="field">
-        <label>DLQI <span class="hint">0–30</span></label>
-        <input type="number" id="dlqi" min="0" max="30" placeholder="0–30">
-      </div>
-    </div>
-  </div>
+  <button class="btn-add" onclick="addSeverityAssessment()">＋ Add Assessment</button>
   <div class="form-nav">
     <div class="nav-left"><button class="btn-prev" onclick="showSection(1)">← Back</button></div>
     <span class="page-indicator">3 / 8</span>
@@ -1059,6 +1020,10 @@ function resetAllFields() {
   lineCount = 0;
   const tl = document.getElementById('treatment-lines');
   if (tl) { tl.innerHTML = ''; addTreatmentLine(); }
+  // Reset severity cards
+  severityCount = 0;
+  const sa = document.getElementById('severity-assessments');
+  if (sa) { sa.innerHTML = ''; addSeverityAssessment(); }
   // Clear nav saved ticks
   navTabs.forEach(t => t.classList.remove('saved'));
   // Reset state
@@ -1306,7 +1271,11 @@ function hasSectionData(idx) {
   switch (idx) {
     case 0: return !!(getRadio('sex') || val('age-dx') || val('dx-year'));
     case 1: return !!(val('clinical-variant') || getRadio('mucosal') || getCheckboxes('dist'));
-    case 2: return !!(val('assess-type') || val('bpdai-skin') || val('pruritus-nrs'));
+    case 2: {
+      const first = document.querySelector('.severity-card');
+      if (!first) return false;
+      return !!(first.querySelector('.sev-skin')?.value || first.querySelector('.sev-nrs')?.value);
+    }
     case 3: return !!(val('lab-year') || getRadio('dif-igg') || val('bp180'));
     case 4: return !!(getRadio('antipsych') || getCheckboxes('neuro') || getRadio('dm'));
     case 5: return !!(getRadio('drug-trigger') || val('trigger-drug') || val('trigger-class'));
@@ -1401,13 +1370,75 @@ async function saveAllSections() {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  BPDAI + CS CALCS
+//  SEVERITY ASSESSMENT CARDS
 // ══════════════════════════════════════════════════════════════
-function calcBPDAI() {
-  const skin   = parseFloat(document.getElementById('bpdai-skin').value)   || 0;
-  const mucosa = parseFloat(document.getElementById('bpdai-mucosa').value) || 0;
-  document.getElementById('bpdai-total').textContent = (skin + mucosa) || '—';
+let severityCount = 0;
+
+function buildSeverityCard(n) {
+  return `
+  <div class="treatment-row severity-card">
+    <div class="treatment-row-header">
+      <span class="line-badge">ASSESSMENT ${n}</span>
+      ${n > 1 ? `<button onclick="removeSeverityCard(this)" style="margin-left:auto;font-family:var(--mono);font-size:0.62rem;background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 8px;border-radius:2px;cursor:pointer;">✕ Remove</button>` : ''}
+    </div>
+    <div class="form-grid cols-3">
+      <div class="field">
+        <label>Assessment Type <span class="req">*</span></label>
+        <select class="sev-type">
+          <option>Baseline (Diagnosis)</option>
+          <option>Follow-up</option>
+          <option>Remission</option>
+          <option>Relapse</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Months Since Diagnosis <span class="hint">0 = at diagnosis</span></label>
+        <input type="number" class="sev-months" min="0" placeholder="e.g. 0">
+      </div>
+      <div class="field">
+        <label>Pruritus NRS <span class="hint">0–10</span></label>
+        <input type="number" class="sev-nrs" min="0" max="10" placeholder="0–10">
+      </div>
+      <div class="field">
+        <label>BPDAI Skin <span class="hint">0–120</span></label>
+        <input type="number" class="sev-skin" min="0" max="120" oninput="calcSeverityTotal(this)">
+      </div>
+      <div class="field">
+        <label>BPDAI Mucosa <span class="hint">0–120</span></label>
+        <input type="number" class="sev-mucosa" min="0" max="120" oninput="calcSeverityTotal(this)">
+      </div>
+      <div class="score-visual">
+        <div class="score-label">BPDAI Total</div>
+        <div class="score-val sev-total">—</div>
+      </div>
+      <div class="field">
+        <label>DLQI <span class="hint">0–30</span></label>
+        <input type="number" class="sev-dlqi" min="0" max="30" placeholder="0–30">
+      </div>
+    </div>
+  </div>`;
 }
+
+function addSeverityAssessment() {
+  severityCount++;
+  document.getElementById('severity-assessments')
+    .insertAdjacentHTML('beforeend', buildSeverityCard(severityCount));
+}
+
+function removeSeverityCard(btn) {
+  btn.closest('.severity-card').remove();
+}
+
+function calcSeverityTotal(el) {
+  const card   = el.closest('.severity-card');
+  const skin   = parseFloat(card.querySelector('.sev-skin')?.value)   || 0;
+  const mucosa = parseFloat(card.querySelector('.sev-mucosa')?.value) || 0;
+  const total  = card.querySelector('.sev-total');
+  if (total) total.textContent = (skin + mucosa) || '—';
+}
+
+// Keep old calcBPDAI as no-op (IDs removed from DOM)
+function calcBPDAI() {}
 
 function calcCumulativeCS(el) {
   const tRow = el.closest('.treatment-row');
@@ -1482,12 +1513,24 @@ function collectSection(idx) {
       pid, val('clinical-variant'), getRadio('mucosal'),
       getCheckboxes('dist'), getRadio('pruritus-present'), collector, ts
     ]};
-    case 2: return { sheet: SHEET_NAMES[2], row: [
-      pid, val('assess-type'), val('months-since-dx'),
-      val('bpdai-skin'), val('bpdai-mucosa'),
-      document.getElementById('bpdai-total').textContent.replace('—',''),
-      val('pruritus-nrs'), val('dlqi'), collector, ts
-    ]};
+    case 2: {
+      const rows = [];
+      document.querySelectorAll('.severity-card').forEach(card => {
+        const skin   = card.querySelector('.sev-skin')?.value   || '';
+        const mucosa = card.querySelector('.sev-mucosa')?.value || '';
+        const total  = card.querySelector('.sev-total')?.textContent.replace('—','') || '';
+        rows.push([
+          pid,
+          card.querySelector('.sev-type')?.value   || '',
+          card.querySelector('.sev-months')?.value || '',
+          skin, mucosa, total,
+          card.querySelector('.sev-nrs')?.value    || '',
+          card.querySelector('.sev-dlqi')?.value   || '',
+          collector, ts
+        ]);
+      });
+      return { sheet: SHEET_NAMES[2], rows };
+    }
     case 3: return { sheet: SHEET_NAMES[3], row: [
       pid, val('lab-year'), getRadio('dif-igg'), getRadio('dif-c3'),
       getRadio('iif'), val('iif-titer'), val('bp180'), val('bp230'),
@@ -1675,6 +1718,7 @@ function addTreatmentLine() {
 
 // Init
 addTreatmentLine();
+addSeverityAssessment();
 </script>
 </body>
 </html>
