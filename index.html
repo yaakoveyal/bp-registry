@@ -1002,6 +1002,8 @@ const sections = document.querySelectorAll('.section');
 const navTabs   = document.querySelectorAll('.nav-tab');
 
 function showSection(idx) {
+  // Save the section we're leaving before switching
+  saveOnTabLeave(currentSection);
   sections.forEach(s => s.classList.remove('active'));
   navTabs.forEach(t => t.classList.remove('active'));
   sections[idx].classList.add('active');
@@ -1075,7 +1077,6 @@ function resetAllFields() {
   pidState       = 'unknown';
   pidConfirmed   = false;
   autoSaveEnabled = false;
-  clearTimeout(autoSaveTimer);
   setAutoDot('');
   updateSaveLocks();
   initConditionals();
@@ -1504,57 +1505,38 @@ async function saveAllSections() {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  AUTO-SAVE ENGINE
-//  Debounced: fires 2.5s after user stops editing any field
+//  AUTO-SAVE ON TAB CHANGE
+//  When user navigates away from a section, save it silently
 // ══════════════════════════════════════════════════════════════
-let autoSaveTimer = null;
-let autoSaveEnabled = false; // only active once PID is confirmed
+let autoSaveEnabled = false;
+
+async function saveOnTabLeave(leavingIdx) {
+  if (!autoSaveEnabled) return;
+  if (!hasSectionData(leavingIdx)) return;
+
+  const pid = document.getElementById('global-pid').value.trim();
+  if (!pid || !/^BP-\d{4}$/.test(pid)) return;
+  if ((pidState === 'exists' || pidState === 'partial') && !pidConfirmed) return;
+
+  setAutoDot('saving');
+  try {
+    await sendSection(leavingIdx);
+    navTabs[leavingIdx].classList.add('saved');
+    navTabs[leavingIdx].classList.remove('dot-red');
+    navTabs[leavingIdx].classList.add('dot-green');
+    setAutoDot('saved');
+    delete lookupCache[pid];
+  } catch(e) {
+    navTabs[leavingIdx].classList.add('dot-red');
+    setAutoDot('error');
+  }
+}
 
 function setAutoDot(state) {
   const dot = document.getElementById('autosave-dot');
   if (dot) dot.className = 'autosave-dot' + (state ? ' ' + state : '');
 }
 
-function scheduleAutoSave() {
-  if (!autoSaveEnabled) return;
-  setAutoDot('pending');
-  clearTimeout(autoSaveTimer);
-  autoSaveTimer = setTimeout(async () => {
-    const pid = document.getElementById('global-pid').value.trim();
-    if (!pid || !/^BP-\d{4}$/.test(pid)) return;
-    if ((pidState === 'exists' || pidState === 'partial') && !pidConfirmed) return;
-
-    const toSave = [0,1,2,3,4,5,6,7].filter(i => hasSectionData(i));
-    if (toSave.length === 0) return;
-
-    setAutoDot('saving');
-    try {
-      await Promise.all(toSave.map(async idx => {
-        try {
-          await sendSection(idx);
-          navTabs[idx].classList.add('saved');
-          navTabs[idx].classList.remove('dot-red');
-          navTabs[idx].classList.add('dot-green');
-        } catch(e) {
-          navTabs[idx].classList.add('dot-red');
-          throw e;
-        }
-      }));
-      setAutoDot('saved');
-      delete lookupCache[document.getElementById('global-pid').value.trim()];
-    } catch(e) {
-      setAutoDot('error');
-    }
-  }, 2500);
-}
-
-// Attach auto-save listeners to all form inputs inside .main
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelector('.main').addEventListener('input',  scheduleAutoSave);
-  document.querySelector('.main').addEventListener('change', scheduleAutoSave);
-});
-
-// Enable auto-save once patient is confirmed (new or verified existing)
 function enableAutoSave() {
   autoSaveEnabled = true;
   setAutoDot('');
