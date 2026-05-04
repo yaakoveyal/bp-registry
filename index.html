@@ -1006,6 +1006,154 @@ function syncPID(val) {
     hideVerifyCard();
     setPidBadge('', '');
     clearTabDots();
+    resetAllFields();
+  }
+}
+
+// ══════════════════════════════════════════════
+//  RESET ALL FIELDS
+// ══════════════════════════════════════════════
+function resetAllFields() {
+  // Text / number / date inputs (except header controls)
+  document.querySelectorAll('.main input[type=text], .main input[type=number], .main input[type=date]')
+    .forEach(el => { el.value = ''; });
+
+  // Selects
+  document.querySelectorAll('.main select')
+    .forEach(el => { el.selectedIndex = 0; });
+
+  // Radios + checkboxes
+  document.querySelectorAll('.main input[type=radio], .main input[type=checkbox]')
+    .forEach(el => {
+      el.checked = false;
+      el.closest('.radio-opt, .check-opt')?.classList.remove('selected');
+    });
+
+  // BPDAI total display
+  const bpdaiTotal = document.getElementById('bpdai-total');
+  if (bpdaiTotal) bpdaiTotal.textContent = '—';
+
+  // Reset treatment lines to a single blank line
+  lineCount = 0;
+  document.getElementById('treatment-lines').innerHTML = '';
+  addTreatmentLine();
+
+  // Clear saved ticks from nav tabs
+  navTabs.forEach(t => t.classList.remove('saved'));
+}
+
+// ── Helper: set a radio button by name + value ──
+function setRadio(name, value) {
+  if (!value) return;
+  const el = document.querySelector(`input[name="${name}"][value="${value}"]`);
+  if (el) {
+    el.checked = true;
+    el.closest('.radio-opt')?.classList.add('selected');
+  }
+}
+
+// ── Helper: set checkboxes by name from comma-separated string ──
+function setCheckboxes(name, csvValue) {
+  if (!csvValue) return;
+  const values = csvValue.split(',').map(v => v.trim());
+  values.forEach(v => {
+    const el = document.querySelector(`input[name="${name}"][value="${v}"]`);
+    if (el) {
+      el.checked = true;
+      el.closest('.check-opt')?.classList.add('selected');
+    }
+  });
+}
+
+// ── Helper: set a select by value ──
+function setSelect(id, value) {
+  const el = document.getElementById(id);
+  if (!el || !value) return;
+  for (let i = 0; i < el.options.length; i++) {
+    if (el.options[i].value === value || el.options[i].text === value) {
+      el.selectedIndex = i; return;
+    }
+  }
+}
+
+// ══════════════════════════════════════════════
+//  PREFILL FROM LOOKUP DATA
+// ══════════════════════════════════════════════
+function prefillFromLookup(data) {
+  // ── Section 1: Baseline ──
+  if (data.baseline) {
+    const b = data.baseline;
+    setRadio('sex', b.Sex);
+    document.getElementById('age-dx').value   = b.Age_at_Diagnosis  || '';
+    document.getElementById('dx-year').value  = b.Year_of_Diagnosis || '';
+    setSelect('ethnicity', b.Ethnicity);
+    setSelect('frailty',   b.Frailty_Score);
+  }
+
+  // ── Section 2: Clinical Phenotype ──
+  if (data.phenotype) {
+    const p = data.phenotype;
+    setSelect('clinical-variant', p.Clinical_Variant);
+    setRadio('mucosal',          p.Mucosal_Involvement);
+    setCheckboxes('dist',        p.Anatomic_Distribution);
+    setRadio('pruritus-present', p.Pruritus_Present);
+  }
+
+  // ── Section 4: Diagnostics & Labs ──
+  if (data.labs) {
+    const l = data.labs;
+    document.getElementById('lab-year').value    = l.Year_of_Labs          || '';
+    setRadio('dif-igg',                            l.DIF_IgG);
+    setRadio('dif-c3',                             l.DIF_C3);
+    setRadio('iif',                                l.IIF_Result);
+    setSelect('iif-titer',                         l.IIF_Titer);
+    document.getElementById('bp180').value        = l.Anti_BP180_IgG       || '';
+    document.getElementById('bp230').value        = l.Anti_BP230_IgG       || '';
+    document.getElementById('total-ige').value    = l.Total_IgE            || '';
+    document.getElementById('eosinophils').value  = l.Absolute_Eosinophils || '';
+    document.getElementById('albumin').value      = l.Albumin              || '';
+  }
+
+  // ── Section 5: Comorbidities ──
+  if (data.comorbidities) {
+    const c = data.comorbidities;
+    setRadio('antipsych',       c.Antipsychotic_Treatment);
+    document.getElementById('neuro-year').value = c.Year_Neurologic_Diagnosis || '';
+    setCheckboxes('neuro',      c.Neurological_Diagnoses);
+    setRadio('dm',              c.Diabetes);
+    setRadio('htn',             c.Hypertension);
+    setRadio('ihd',             c.IHD);
+    setRadio('malig',           c.Active_Malignancy);
+    setRadio('autoimm',         c.Autoimmune_Disease);
+  }
+
+  // ── Section 6: Drug Triggers ──
+  if (data.drug_triggers) {
+    const d = data.drug_triggers;
+    setRadio('drug-trigger',    d.Suspected_Drug_Trigger);
+    setSelect('trigger-class',  d.Trigger_Drug_Class);
+    document.getElementById('trigger-drug').value = d.Specific_Drug || '';
+    setRadio('drug-dc',         d.Drug_Discontinued);
+    setRadio('drug-improv',     d.Improvement_After_Withdrawal);
+  }
+
+  // ── Section 8: Outcomes ──
+  if (data.outcomes) {
+    const o = data.outcomes;
+    document.getElementById('followup-months').value = o.Followup_Duration_Months       || '';
+    setRadio('crot',    o.Complete_Remission_Off_Therapy);
+    setRadio('crmt',    o.Complete_Remission_On_Minimal_Therapy);
+    document.getElementById('time-remission').value  = o.Time_to_First_Remission_Weeks  || '';
+    setRadio('pr',      o.Partial_Remission);
+    setRadio('nr',      o.Non_Responder);
+    setRadio('relapse', o.Relapse);
+    document.getElementById('time-relapse').value    = o.Time_to_First_Relapse_Weeks    || '';
+    document.getElementById('n-relapses').value      = o.Number_of_Relapses             || '';
+    setSelect('relapse-context', o.Relapse_Context);
+    document.getElementById('n-hosp').value          = o.Number_of_Hospitalizations     || '';
+    setRadio('sepsis',  o.Sepsis);
+    document.getElementById('months-to-death').value = o.Months_to_Death                || '';
+    setSelect('cause-death', o.Cause_of_Death);
   }
 }
 
@@ -1041,6 +1189,7 @@ async function lookupPID(pid) {
       pidState = json.baseline ? 'exists' : 'partial';
       pidProfile = json.baseline || null;
       setPidBadge('exists', '⚠ Existing patient');
+      prefillFromLookup(json);
       showVerifyCardExisting(pid, json);
     } else {
       pidState = 'new';
@@ -1124,23 +1273,23 @@ function showVerifyCardExisting(pid, data) {
       <div class="verify-profile">
         <div class="verify-profile-item">
           <span class="verify-profile-label">Sex</span>
-          <span class="verify-profile-val">${b.sex || '—'}</span>
+          <span class="verify-profile-val">${b.Sex || '—'}</span>
         </div>
         <div class="verify-profile-item">
           <span class="verify-profile-label">Age at Dx</span>
-          <span class="verify-profile-val">${b.age || '—'} yrs</span>
+          <span class="verify-profile-val">${b.Age_at_Diagnosis || '—'} yrs</span>
         </div>
         <div class="verify-profile-item">
           <span class="verify-profile-label">Year of Dx</span>
-          <span class="verify-profile-val">${b.year || '—'}</span>
+          <span class="verify-profile-val">${b.Year_of_Diagnosis || '—'}</span>
         </div>
         <div class="verify-profile-item">
           <span class="verify-profile-label">Ethnicity</span>
-          <span class="verify-profile-val">${b.ethnicity || '—'}</span>
+          <span class="verify-profile-val">${b.Ethnicity || '—'}</span>
         </div>
         <div class="verify-profile-item">
           <span class="verify-profile-label">Collector</span>
-          <span class="verify-profile-val">${b.collector || '—'}</span>
+          <span class="verify-profile-val">${b.Collector || '—'}</span>
         </div>
       </div>`;
   } else {
