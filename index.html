@@ -90,13 +90,13 @@
   .nav-tab.dot-red   .tab-dot { display: inline-block; background: #f87171; }
 
   /* ── MAIN ── */
-  .main { padding: 28px 40px 60px; max-width: 980px; }
+  .main { padding: 16px 40px 40px; max-width: 980px; }
   .section { display: none; }
   .section.active { display: block; }
 
   .section-header {
     display: flex; align-items: center; gap: 14px;
-    margin-bottom: 24px; padding-bottom: 14px; border-bottom: 2px solid var(--border);
+    margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--border);
   }
   .section-num {
     font-family: var(--mono); font-size: 0.68rem; font-weight: 600;
@@ -107,13 +107,13 @@
   .section-note { margin-left: auto; font-family: var(--mono); font-size: 0.62rem; color: var(--text-muted); }
 
   /* ── GRID ── */
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 26px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 22px; }
   .form-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
   .span-2 { grid-column: span 2; }
   .span-3 { grid-column: span 3; }
 
   /* ── FIELDS ── */
-  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
   .field label { font-family: var(--mono); font-size: 0.66rem; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--label); }
   .field label .req { color: var(--error); margin-left: 3px; }
   .field label .hint { font-family: var(--sans); font-size: 0.63rem; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text-muted); margin-left: 5px; }
@@ -121,7 +121,7 @@
   input[type=text], input[type=date], input[type=number], select, textarea {
     font-family: var(--sans); font-size: 0.875rem;
     background: var(--surface); border: 1px solid var(--border);
-    color: var(--text); padding: 8px 11px; border-radius: var(--radius);
+    color: var(--text); padding: 6px 10px; border-radius: var(--radius);
     width: 100%; transition: border-color 0.15s, box-shadow 0.15s;
     appearance: none; -webkit-appearance: none;
   }
@@ -142,7 +142,7 @@
   .radio-opt, .check-opt {
     display: flex; align-items: center; gap: 6px;
     background: var(--surface); border: 1px solid var(--border);
-    padding: 7px 12px; border-radius: var(--radius);
+    padding: 5px 10px; border-radius: var(--radius);
     cursor: pointer; font-size: 0.83rem;
     transition: all 0.12s; user-select: none;
   }
@@ -151,11 +151,11 @@
   .radio-opt.selected, .check-opt.selected { border-color: var(--accent); background: var(--accent-light); font-weight: 500; }
 
   /* ── SUBSECTION ── */
-  .subsection { margin-top: 24px; padding-top: 18px; border-top: 1px dashed var(--border); }
-  .subsection-title { font-family: var(--mono); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 14px; }
+  .subsection { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--border); }
+  .subsection-title { font-family: var(--mono); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
 
   /* ── SCORE BOX ── */
-  .score-visual { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+  .score-visual { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; }
   .score-label { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
   .score-val { font-family: var(--mono); font-size: 1.5rem; font-weight: 600; color: var(--accent); margin-top: 2px; }
 
@@ -178,7 +178,7 @@
   /* ── FORM NAV ── */
   .form-nav {
     display: flex; justify-content: space-between; align-items: center;
-    margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border);
+    margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border);
     gap: 12px; flex-wrap: wrap;
   }
   .nav-left, .nav-right { display: flex; align-items: center; gap: 10px; }
@@ -578,39 +578,47 @@
   </div>
   <div class="subsection">
     <div class="subsection-title">Immunofluorescence</div>
-    <div class="form-grid cols-3">
-      <div class="field">
-        <label>DIF — IgG</label>
-        <div class="radio-group">
-          <label class="radio-opt"><input type="radio" name="dif-igg" value="Positive"> Pos</label>
-          <label class="radio-opt"><input type="radio" name="dif-igg" value="Negative"> Neg</label>
-          <label class="radio-opt"><input type="radio" name="dif-igg" value="ND"> ND</label>
+    <div class="form-grid">
+      <!-- DIF column -->
+      <div style="display:flex; flex-direction:column; gap:10px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:12px;">
+        <div style="font-family:var(--mono); font-size:0.6rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); margin-bottom:2px;">Direct IF (DIF)</div>
+        <div class="field">
+          <label>IgG</label>
+          <div class="radio-group">
+            <label class="radio-opt"><input type="radio" name="dif-igg" value="Positive"> Pos</label>
+            <label class="radio-opt"><input type="radio" name="dif-igg" value="Negative"> Neg</label>
+            <label class="radio-opt"><input type="radio" name="dif-igg" value="ND"> ND</label>
+          </div>
+        </div>
+        <div class="field">
+          <label>C3</label>
+          <div class="radio-group">
+            <label class="radio-opt"><input type="radio" name="dif-c3" value="Positive"> Pos</label>
+            <label class="radio-opt"><input type="radio" name="dif-c3" value="Negative"> Neg</label>
+            <label class="radio-opt"><input type="radio" name="dif-c3" value="ND"> ND</label>
+          </div>
         </div>
       </div>
-      <div class="field">
-        <label>DIF — C3</label>
-        <div class="radio-group">
-          <label class="radio-opt"><input type="radio" name="dif-c3" value="Positive"> Pos</label>
-          <label class="radio-opt"><input type="radio" name="dif-c3" value="Negative"> Neg</label>
-          <label class="radio-opt"><input type="radio" name="dif-c3" value="ND"> ND</label>
+      <!-- IIF column -->
+      <div style="display:flex; flex-direction:column; gap:10px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:12px;">
+        <div style="font-family:var(--mono); font-size:0.6rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); margin-bottom:2px;">Indirect IF (IIF)</div>
+        <div class="field">
+          <label>Result</label>
+          <div class="radio-group">
+            <label class="radio-opt"><input type="radio" name="iif" value="Positive"> Pos</label>
+            <label class="radio-opt"><input type="radio" name="iif" value="Negative"> Neg</label>
+            <label class="radio-opt"><input type="radio" name="iif" value="ND"> ND</label>
+          </div>
         </div>
-      </div>
-      <div class="field">
-        <label>IIF</label>
-        <div class="radio-group">
-          <label class="radio-opt"><input type="radio" name="iif" value="Positive"> Pos</label>
-          <label class="radio-opt"><input type="radio" name="iif" value="Negative"> Neg</label>
-          <label class="radio-opt"><input type="radio" name="iif" value="ND"> ND</label>
+        <div class="field">
+          <label>Titer</label>
+          <select id="iif-titer">
+            <option value="">—</option>
+            <option>1:10</option><option>1:20</option><option>1:40</option>
+            <option>1:80</option><option>1:160</option><option>1:320</option>
+            <option>1:640</option><option>>1:640</option>
+          </select>
         </div>
-      </div>
-      <div class="field">
-        <label>IIF Titer</label>
-        <select id="iif-titer">
-          <option value="">—</option>
-          <option>1:10</option><option>1:20</option><option>1:40</option>
-          <option>1:80</option><option>1:160</option><option>1:320</option>
-          <option>1:640</option><option>>1:640</option>
-        </select>
       </div>
     </div>
   </div>
