@@ -325,6 +325,19 @@
     pointer-events: none;
   }
 
+  /* ── AUTO-SAVE INDICATOR ── */
+  .autosave-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    transition: background 0.4s;
+    flex-shrink: 0;
+  }
+  .autosave-dot.pending  { background: #ffb300; animation: pulse-dot 1s infinite; }
+  .autosave-dot.saving   { background: #7eb8e8; animation: pulse-dot 0.6s infinite; }
+  .autosave-dot.saved    { background: #4ade80; animation: none; }
+  .autosave-dot.error    { background: #f87171; animation: none; }
+  @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
   /* ── NEW PATIENT BUTTON ── */
   .btn-new-patient {
     font-family: var(--mono); font-size: 0.65rem; font-weight: 600;
@@ -372,6 +385,7 @@
         <div class="save-progress-bar"><div class="save-progress-fill" id="save-progress-fill"></div></div>
       </div>
       <button class="btn-new-patient" onclick="newPatient()">↺ New Patient</button>
+      <div class="autosave-dot" id="autosave-dot" title="Auto-save status"></div>
       <button class="btn-save-all" id="btn-save-all" onclick="saveAllSections()">↑ Save Patient</button>
     </div>
   </div>
@@ -1058,8 +1072,11 @@ function resetAllFields() {
   // Clear nav saved ticks
   navTabs.forEach(t => t.classList.remove('saved'));
   // Reset state
-  pidState     = 'unknown';
-  pidConfirmed = false;
+  pidState       = 'unknown';
+  pidConfirmed   = false;
+  autoSaveEnabled = false;
+  clearTimeout(autoSaveTimer);
+  setAutoDot('');
   updateSaveLocks();
   initConditionals();
 }
@@ -1161,29 +1178,50 @@ function prefillFromLookup(data) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  LOOKUP
+//  LOOKUP CACHE + WARM-UP PING
 // ══════════════════════════════════════════════════════════════
+const lookupCache = {}; // sessionStorage-backed cache keyed by BP-ID
+
+// Warm up Apps Script on page load (fires silently, result ignored)
+(function warmUp() {
+  const params = new URLSearchParams({ token: SECRET_TOKEN });
+  fetch(APPS_SCRIPT_URL + '?' + params.toString()).catch(() => {});
+})();
+
 async function lookupPID(pid) {
   lastLookedUpPID = pid;
   setPidBadge('checking', '⟳ Checking…');
+
+  // Return cached result instantly if available
+  if (lookupCache[pid]) {
+    const json = lookupCache[pid];
+    applyLookupResult(pid, json);
+    return;
+  }
+
   try {
     const params = new URLSearchParams({ token: SECRET_TOKEN, action: 'lookup', pid });
     const resp = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
     const json = await resp.json();
     if (json.status === 'error') { setPidBadge('', ''); return; }
-
-    if (json.found) {
-      pidState = json.baseline ? 'exists' : 'partial';
-      setPidBadge('exists', '⚠ Existing patient');
-      prefillFromLookup(json);
-      showVerifyCardExisting(pid, json);
-    } else {
-      pidState = 'new';
-      setPidBadge('new', '✓ New patient');
-      showVerifyCardNew(pid);
-    }
+    lookupCache[pid] = json; // cache for this session
+    applyLookupResult(pid, json);
   } catch(e) {
     setPidBadge('', '');
+  }
+  updateSaveLocks();
+}
+
+function applyLookupResult(pid, json) {
+  if (json.found) {
+    pidState = json.baseline ? 'exists' : 'partial';
+    setPidBadge('exists', '⚠ Existing patient');
+    prefillFromLookup(json);
+    showVerifyCardExisting(pid, json);
+  } else {
+    pidState = 'new';
+    setPidBadge('new', '✓ New patient');
+    showVerifyCardNew(pid);
   }
   updateSaveLocks();
 }
@@ -1216,6 +1254,7 @@ function showVerifyCardNew(pid) {
   pidConfirmed = true;
   updateTabDots([]);
   updateSaveLocks();
+  enableAutoSave();
 }
 
 function showVerifyCardExisting(pid, data) {
@@ -1263,6 +1302,7 @@ function onConfirmChange(cb) {
   pidConfirmed = cb.checked;
   document.getElementById('verify-confirm-label')?.classList.toggle('checked', cb.checked);
   updateSaveLocks();
+  if (cb.checked) enableAutoSave();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1346,6 +1386,9 @@ function initConditionals() {
   // Neuro year starts hidden
   setConditional('cond-neuro-year',     false);
 }
+
+// ══════════════════════════════════════════════════════════════
+//  SAVE LOCK
 // ══════════════════════════════════════════════════════════════
 function updateSaveLocks() {
   const locked = (pidState === 'exists' || pidState === 'partial') && !pidConfirmed;
@@ -1382,83 +1425,139 @@ function hasSectionData(idx) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  SAVE ALL SECTIONS
+//  SEND ONE SECTION (shared by manual save + auto-save)
+// ══════════════════════════════════════════════════════════════
+async function sendSection(idx) {
+  const payload    = collectSection(idx);
+  const rowsToSend = payload.rows || [payload.row];
+  for (const row of rowsToSend) {
+    const params = new URLSearchParams({ token: SECRET_TOKEN, sheet: payload.sheet, row: JSON.stringify(row) });
+    const resp   = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
+    const json   = await resp.json();
+    if (json.status === 'error') throw new Error(json.message);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SAVE ALL — fires all sections in PARALLEL
 // ══════════════════════════════════════════════════════════════
 async function saveAllSections() {
   const pid = document.getElementById('global-pid').value.trim();
   if (!pid) { showToast('Enter a BP-ID first', 'error'); return; }
-  if (!/^BP-\d{4}$/.test(pid)) { showToast('BP-ID must be BP-XXXX (e.g. BP-0042)', 'error'); return; }
+  if (!/^BP-\d{4}$/.test(pid)) { showToast('BP-ID must be BP-XXXX', 'error'); return; }
 
-  // Force lookup if not yet done
   if (pid !== lastLookedUpPID) {
     showToast('Verifying patient ID…', 'loading');
     await onPIDBlur(pid);
   }
-
   if ((pidState === 'exists' || pidState === 'partial') && !pidConfirmed) {
     showToast('Tick the confirmation checkbox first', 'error');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return;
   }
 
-  // Determine which sections have data
   const toSave = [0,1,2,3,4,5,6,7].filter(i => hasSectionData(i));
-  if (toSave.length === 0) {
-    showToast('No data filled in yet', 'error');
-    return;
-  }
+  if (toSave.length === 0) { showToast('No data filled in yet', 'error'); return; }
 
-  // Lock button, show progress
+  // Optimistic UI — mark all as saving immediately
   const btn = document.getElementById('btn-save-all');
   btn.disabled = true;
-  const progressEl  = document.getElementById('save-progress');
+  setAutoDot('saving');
+  const progressEl   = document.getElementById('save-progress');
   const progressFill = document.getElementById('save-progress-fill');
   const progressText = document.getElementById('save-progress-text');
   progressEl.classList.add('show');
+  progressText.textContent = `Saving ${toSave.length} sections…`;
+  progressFill.style.width = '10%';
 
-  let saved = 0;
-  let errors = 0;
-
-  for (const idx of toSave) {
-    progressText.textContent = `Saving ${saved + 1} / ${toSave.length}…`;
-    progressFill.style.width = (saved / toSave.length * 100) + '%';
-
-    const payload    = collectSection(idx);
-    const rowsToSend = payload.rows || [payload.row];
-
+  // Fire ALL in parallel
+  let saved = 0; let errors = 0;
+  await Promise.all(toSave.map(async idx => {
     try {
-      let lastStatus = '';
-      for (const row of rowsToSend) {
-        const params = new URLSearchParams({ token: SECRET_TOKEN, sheet: payload.sheet, row: JSON.stringify(row) });
-        const resp   = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
-        const json   = await resp.json();
-        if (json.status === 'error') throw new Error(json.message);
-        lastStatus = json.status;
-      }
+      await sendSection(idx);
       navTabs[idx].classList.add('saved');
       navTabs[idx].classList.remove('dot-red');
       navTabs[idx].classList.add('dot-green');
       saved++;
     } catch(e) {
       errors++;
+      navTabs[idx].classList.remove('dot-green');
       navTabs[idx].classList.add('dot-red');
     }
-  }
+    // Update progress as each completes
+    progressFill.style.width = ((saved + errors) / toSave.length * 100) + '%';
+  }));
 
-  // Done
   progressFill.style.width = '100%';
-  setTimeout(() => {
-    progressEl.classList.remove('show');
-    progressFill.style.width = '0%';
-  }, 2000);
-
+  setTimeout(() => { progressEl.classList.remove('show'); progressFill.style.width = '0%'; }, 1500);
   btn.disabled = false;
 
   if (errors === 0) {
+    setAutoDot('saved');
     showToast(`✓ Saved ${saved} section${saved !== 1 ? 's' : ''} for ${pid}`, 'success');
+    // Invalidate cache so next lookup reflects new data
+    delete lookupCache[pid];
   } else {
+    setAutoDot('error');
     showToast(`Saved ${saved}, failed ${errors} — check connection`, 'error');
   }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  AUTO-SAVE ENGINE
+//  Debounced: fires 2.5s after user stops editing any field
+// ══════════════════════════════════════════════════════════════
+let autoSaveTimer = null;
+let autoSaveEnabled = false; // only active once PID is confirmed
+
+function setAutoDot(state) {
+  const dot = document.getElementById('autosave-dot');
+  if (dot) dot.className = 'autosave-dot' + (state ? ' ' + state : '');
+}
+
+function scheduleAutoSave() {
+  if (!autoSaveEnabled) return;
+  setAutoDot('pending');
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(async () => {
+    const pid = document.getElementById('global-pid').value.trim();
+    if (!pid || !/^BP-\d{4}$/.test(pid)) return;
+    if ((pidState === 'exists' || pidState === 'partial') && !pidConfirmed) return;
+
+    const toSave = [0,1,2,3,4,5,6,7].filter(i => hasSectionData(i));
+    if (toSave.length === 0) return;
+
+    setAutoDot('saving');
+    try {
+      await Promise.all(toSave.map(async idx => {
+        try {
+          await sendSection(idx);
+          navTabs[idx].classList.add('saved');
+          navTabs[idx].classList.remove('dot-red');
+          navTabs[idx].classList.add('dot-green');
+        } catch(e) {
+          navTabs[idx].classList.add('dot-red');
+          throw e;
+        }
+      }));
+      setAutoDot('saved');
+      delete lookupCache[document.getElementById('global-pid').value.trim()];
+    } catch(e) {
+      setAutoDot('error');
+    }
+  }, 2500);
+}
+
+// Attach auto-save listeners to all form inputs inside .main
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelector('.main').addEventListener('input',  scheduleAutoSave);
+  document.querySelector('.main').addEventListener('change', scheduleAutoSave);
+});
+
+// Enable auto-save once patient is confirmed (new or verified existing)
+function enableAutoSave() {
+  autoSaveEnabled = true;
+  setAutoDot('');
 }
 
 // ══════════════════════════════════════════════════════════════
