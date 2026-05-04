@@ -287,6 +287,33 @@
   .verify-confirm input { accent-color: var(--accent); width: 14px; height: 14px; }
   .verify-confirm.checked { border-color: var(--success); background: var(--success-light); font-weight: 500; }
 
+  /* ── UNIVERSAL SAVE BUTTON ── */
+  .btn-save-all {
+    font-family: var(--mono); font-size: 0.7rem; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    background: #2d6a4f; color: #fff;
+    border: none; padding: 8px 18px; border-radius: var(--radius);
+    cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; gap: 7px; white-space: nowrap;
+  }
+  .btn-save-all:hover { background: #1e4d38; }
+  .btn-save-all:disabled { background: #4a7a62; cursor: not-allowed; opacity: 0.6; }
+
+  /* ── SAVE PROGRESS ── */
+  .save-progress {
+    display: none; align-items: center; gap: 10px;
+    font-family: var(--mono); font-size: 0.65rem; color: rgba(255,255,255,0.75);
+  }
+  .save-progress.show { display: flex; }
+  .save-progress-bar {
+    width: 100px; height: 4px; background: rgba(255,255,255,0.2);
+    border-radius: 2px; overflow: hidden;
+  }
+  .save-progress-fill {
+    height: 100%; background: #7eb8e8; border-radius: 2px;
+    transition: width 0.3s ease; width: 0%;
+  }
+
   @media (max-width: 640px) {
     .header, .main { padding-left: 16px; padding-right: 16px; }
     .section-nav { padding: 0 16px; }
@@ -316,6 +343,13 @@
     <div class="collector-bar">
       <label>Collector</label>
       <input type="text" id="collector-name" placeholder="Your initials / name">
+    </div>
+    <div style="margin-left:auto; display:flex; align-items:center; gap:12px;">
+      <div class="save-progress" id="save-progress">
+        <span id="save-progress-text">Saving…</span>
+        <div class="save-progress-bar"><div class="save-progress-fill" id="save-progress-fill"></div></div>
+      </div>
+      <button class="btn-save-all" id="btn-save-all" onclick="saveAllSections()">↑ Save Patient</button>
     </div>
   </div>
   <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:12.5%"></div></div>
@@ -404,9 +438,6 @@
     <div class="nav-left"></div>
     <span class="page-indicator">1 / 8</span>
     <div class="nav-right">
-      <button class="btn-submit" onclick="submitSection(0)">
-        <span>↑ Save Baseline</span>
-      </button>
       <button class="btn-next" onclick="showSection(1)">Next →</button>
     </div>
   </div>
@@ -474,7 +505,6 @@
     <div class="nav-left"><button class="btn-prev" onclick="showSection(0)">← Back</button></div>
     <span class="page-indicator">2 / 8</span>
     <div class="nav-right">
-      <button class="btn-submit" onclick="submitSection(1)">↑ Save Phenotype</button>
       <button class="btn-next" onclick="showSection(2)">Next →</button>
     </div>
   </div>
@@ -540,7 +570,6 @@
     <div class="nav-left"><button class="btn-prev" onclick="showSection(1)">← Back</button></div>
     <span class="page-indicator">3 / 8</span>
     <div class="nav-right">
-      <button class="btn-submit" onclick="submitSection(2)">↑ Save Severity</button>
       <button class="btn-next" onclick="showSection(3)">Next →</button>
     </div>
   </div>
@@ -635,7 +664,6 @@
     <div class="nav-left"><button class="btn-prev" onclick="showSection(2)">← Back</button></div>
     <span class="page-indicator">4 / 8</span>
     <div class="nav-right">
-      <button class="btn-submit" onclick="submitSection(3)">↑ Save Labs</button>
       <button class="btn-next" onclick="showSection(4)">Next →</button>
     </div>
   </div>
@@ -723,7 +751,6 @@
     <div class="nav-left"><button class="btn-prev" onclick="showSection(3)">← Back</button></div>
     <span class="page-indicator">5 / 8</span>
     <div class="nav-right">
-      <button class="btn-submit" onclick="submitSection(4)">↑ Save Comorbidities</button>
       <button class="btn-next" onclick="showSection(5)">Next →</button>
     </div>
   </div>
@@ -790,7 +817,6 @@
     <div class="nav-left"><button class="btn-prev" onclick="showSection(4)">← Back</button></div>
     <span class="page-indicator">6 / 8</span>
     <div class="nav-right">
-      <button class="btn-submit" onclick="submitSection(5)">↑ Save Drug Triggers</button>
       <button class="btn-next" onclick="showSection(6)">Next →</button>
     </div>
   </div>
@@ -817,7 +843,6 @@
     <div class="nav-left"><button class="btn-prev" onclick="showSection(5)">← Back</button></div>
     <span class="page-indicator">7 / 8</span>
     <div class="nav-right">
-      <button class="btn-submit" onclick="submitSection(6)">↑ Save Treatment</button>
       <button class="btn-next" onclick="showSection(7)">Next →</button>
     </div>
   </div>
@@ -943,7 +968,6 @@
     <div class="nav-left"><button class="btn-prev" onclick="showSection(6)">← Back</button></div>
     <span class="page-indicator">8 / 8</span>
     <div class="nav-right">
-      <button class="btn-submit" id="btn-final" onclick="submitSection(7)">✓ Save & Complete</button>
     </div>
   </div>
 </div>
@@ -1264,15 +1288,116 @@ function clearTabDots() {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  SAVE LOCK
+//  SAVE LOCK — targets the universal save button
 // ══════════════════════════════════════════════════════════════
 function updateSaveLocks() {
   const locked = (pidState === 'exists' || pidState === 'partial') && !pidConfirmed;
-  document.querySelectorAll('.btn-submit').forEach(btn => {
+  const btn = document.getElementById('btn-save-all');
+  if (btn) {
     btn.disabled = locked;
-    btn.style.opacity = locked ? '0.45' : '1';
     btn.title = locked ? 'Tick the confirmation checkbox above before saving' : '';
-  });
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  HAS SECTION DATA — returns true if any non-ID field is filled
+// ══════════════════════════════════════════════════════════════
+function hasSectionData(idx) {
+  switch (idx) {
+    case 0: return !!(getRadio('sex') || val('age-dx') || val('dx-year'));
+    case 1: return !!(val('clinical-variant') || getRadio('mucosal') || getCheckboxes('dist'));
+    case 2: return !!(val('assess-type') || val('bpdai-skin') || val('pruritus-nrs'));
+    case 3: return !!(val('lab-year') || getRadio('dif-igg') || val('bp180'));
+    case 4: return !!(getRadio('antipsych') || getCheckboxes('neuro') || getRadio('dm'));
+    case 5: return !!(getRadio('drug-trigger') || val('trigger-drug') || val('trigger-class'));
+    case 6: {
+      const firstRow = document.querySelector('.treatment-row');
+      if (!firstRow) return false;
+      return !!(firstRow.querySelector('.tx-drug')?.value || firstRow.querySelector('.tx-route')?.value);
+    }
+    case 7: return !!(val('followup-months') || getRadio('crot') || getRadio('relapse'));
+  }
+  return false;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SAVE ALL SECTIONS
+// ══════════════════════════════════════════════════════════════
+async function saveAllSections() {
+  const pid = document.getElementById('global-pid').value.trim();
+  if (!pid) { showToast('Enter a BP-ID first', 'error'); return; }
+  if (!/^BP-\d{4}$/.test(pid)) { showToast('BP-ID must be BP-XXXX (e.g. BP-0042)', 'error'); return; }
+
+  // Force lookup if not yet done
+  if (pid !== lastLookedUpPID) {
+    showToast('Verifying patient ID…', 'loading');
+    await onPIDBlur(pid);
+  }
+
+  if ((pidState === 'exists' || pidState === 'partial') && !pidConfirmed) {
+    showToast('Tick the confirmation checkbox first', 'error');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+
+  // Determine which sections have data
+  const toSave = [0,1,2,3,4,5,6,7].filter(i => hasSectionData(i));
+  if (toSave.length === 0) {
+    showToast('No data filled in yet', 'error');
+    return;
+  }
+
+  // Lock button, show progress
+  const btn = document.getElementById('btn-save-all');
+  btn.disabled = true;
+  const progressEl  = document.getElementById('save-progress');
+  const progressFill = document.getElementById('save-progress-fill');
+  const progressText = document.getElementById('save-progress-text');
+  progressEl.classList.add('show');
+
+  let saved = 0;
+  let errors = 0;
+
+  for (const idx of toSave) {
+    progressText.textContent = `Saving ${saved + 1} / ${toSave.length}…`;
+    progressFill.style.width = (saved / toSave.length * 100) + '%';
+
+    const payload    = collectSection(idx);
+    const rowsToSend = payload.rows || [payload.row];
+
+    try {
+      let lastStatus = '';
+      for (const row of rowsToSend) {
+        const params = new URLSearchParams({ token: SECRET_TOKEN, sheet: payload.sheet, row: JSON.stringify(row) });
+        const resp   = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
+        const json   = await resp.json();
+        if (json.status === 'error') throw new Error(json.message);
+        lastStatus = json.status;
+      }
+      navTabs[idx].classList.add('saved');
+      navTabs[idx].classList.remove('dot-red');
+      navTabs[idx].classList.add('dot-green');
+      saved++;
+    } catch(e) {
+      errors++;
+      navTabs[idx].classList.add('dot-red');
+    }
+  }
+
+  // Done
+  progressFill.style.width = '100%';
+  setTimeout(() => {
+    progressEl.classList.remove('show');
+    progressFill.style.width = '0%';
+  }, 2000);
+
+  btn.disabled = false;
+
+  if (errors === 0) {
+    showToast(`✓ Saved ${saved} section${saved !== 1 ? 's' : ''} for ${pid}`, 'success');
+  } else {
+    showToast(`Saved ${saved}, failed ${errors} — check connection`, 'error');
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1415,7 +1540,6 @@ async function submitSection(idx) {
   if (!pid) { showToast('Enter a BP-ID first', 'error'); return; }
   if (!/^BP-\d{4}$/.test(pid)) { showToast('BP-ID must be BP-XXXX (e.g. BP-0042)', 'error'); return; }
 
-  // If user never blurred (e.g. paste + immediate click), run lookup now
   if (pid !== lastLookedUpPID) {
     showToast('Verifying patient ID…', 'loading');
     await onPIDBlur(pid);
@@ -1427,7 +1551,8 @@ async function submitSection(idx) {
     return;
   }
 
-  document.querySelectorAll('.btn-submit').forEach(b => { b.disabled = true; b.style.opacity = '0.6'; });
+  const btn = document.getElementById('btn-save-all');
+  if (btn) { btn.disabled = true; }
   showToast('Saving…', 'loading');
 
   const payload    = collectSection(idx);
@@ -1449,7 +1574,7 @@ async function submitSection(idx) {
   } catch(e) {
     showToast('Error: ' + (e.message || 'check connection'), 'error');
   } finally {
-    document.querySelectorAll('.btn-submit').forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+    if (btn) { btn.disabled = false; }
     updateSaveLocks();
   }
 }
