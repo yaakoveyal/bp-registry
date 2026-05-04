@@ -309,6 +309,7 @@
       <label>BP-ID</label>
       <input type="text" id="global-pid" placeholder="BP-0001"
         oninput="syncPID(this.value)"
+        onkeydown="if(event.key==='Enter'){this.blur();}"
         onblur="onPIDBlur(this.value)">
       <span class="pid-status checking" id="pid-status"></span>
     </div>
