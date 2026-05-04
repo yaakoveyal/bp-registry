@@ -1274,12 +1274,8 @@ function showVerifyCardExisting(pid, data) {
 
   const sheetsFound = data.sheets_found || [];
 
-  let longInfo = '';
-  if (data.severity_count  > 0) longInfo += `<div class="verify-subinfo">Disease Severity: <strong>${data.severity_count}</strong> existing assessment(s) — saving will <em>add</em> a new one.</div>`;
-  if (data.treatment_count > 0) longInfo += `<div class="verify-subinfo">Treatment Courses: <strong>${data.treatment_count}</strong> existing line(s) — saving will <em>add</em> a new line.</div>`;
-
   document.getElementById('verify-body').innerHTML = `
-    ${profileHTML}${longInfo}
+    ${profileHTML}
     <label class="verify-confirm" id="verify-confirm-label">
       <input type="checkbox" id="verify-checkbox" onchange="onConfirmChange(this)">
       I confirm this is the correct patient — proceed with saving
