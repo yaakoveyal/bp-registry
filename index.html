@@ -314,6 +314,28 @@
     transition: width 0.3s ease; width: 0%;
   }
 
+  /* ── CONDITIONAL FIELDS ── */
+  .conditional-field {
+    transition: opacity 0.2s, max-height 0.25s;
+    overflow: hidden;
+    max-height: 200px;
+  }
+  .conditional-field.hidden {
+    opacity: 0.25;
+    pointer-events: none;
+  }
+
+  /* ── NEW PATIENT BUTTON ── */
+  .btn-new-patient {
+    font-family: var(--mono); font-size: 0.65rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    background: transparent; color: rgba(255,255,255,0.55);
+    border: 1px solid rgba(255,255,255,0.25); padding: 6px 12px;
+    border-radius: var(--radius); cursor: pointer; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-new-patient:hover { color: #fff; border-color: rgba(255,255,255,0.6); }
+
   @media (max-width: 640px) {
     .header, .main { padding-left: 16px; padding-right: 16px; }
     .section-nav { padding: 0 16px; }
@@ -349,6 +371,7 @@
         <span id="save-progress-text">Saving…</span>
         <div class="save-progress-bar"><div class="save-progress-fill" id="save-progress-fill"></div></div>
       </div>
+      <button class="btn-new-patient" onclick="newPatient()">↺ New Patient</button>
       <button class="btn-save-all" id="btn-save-all" onclick="saveAllSections()">↑ Save Patient</button>
     </div>
   </div>
@@ -653,17 +676,17 @@
   <div class="subsection">
     <div class="subsection-title">Neurological</div>
     <div class="form-grid">
-      <div class="field">
+      <div class="field conditional-field" id="cond-neuro-year">
         <label>Year of Neurologic Diagnosis <span class="hint">if applicable</span></label>
         <input type="number" id="neuro-year" min="1950" max="2030" placeholder="e.g. 2015">
       </div>
       <div class="field">
         <label>Neurological Diagnoses <span class="hint">check all that apply</span></label>
         <div class="check-group">
-          <label class="check-opt"><input type="checkbox" name="neuro" value="Dementia"> Dementia</label>
-          <label class="check-opt"><input type="checkbox" name="neuro" value="Parkinsons"> Parkinson's</label>
-          <label class="check-opt"><input type="checkbox" name="neuro" value="Stroke"> Stroke</label>
-          <label class="check-opt"><input type="checkbox" name="neuro" value="Epilepsy"> Epilepsy</label>
+          <label class="check-opt"><input type="checkbox" name="neuro" value="Dementia" onchange="onNeuroChange()"> Dementia</label>
+          <label class="check-opt"><input type="checkbox" name="neuro" value="Parkinsons" onchange="onNeuroChange()"> Parkinson's</label>
+          <label class="check-opt"><input type="checkbox" name="neuro" value="Stroke" onchange="onNeuroChange()"> Stroke</label>
+          <label class="check-opt"><input type="checkbox" name="neuro" value="Epilepsy" onchange="onNeuroChange()"> Epilepsy</label>
         </div>
       </div>
     </div>
@@ -732,12 +755,12 @@
     <div class="field">
       <label>Suspected Drug Trigger</label>
       <div class="radio-group">
-        <label class="radio-opt"><input type="radio" name="drug-trigger" value="Yes"> Yes</label>
-        <label class="radio-opt"><input type="radio" name="drug-trigger" value="No"> No</label>
-        <label class="radio-opt"><input type="radio" name="drug-trigger" value="Possible"> Possible</label>
+        <label class="radio-opt"><input type="radio" name="drug-trigger" value="Yes" onchange="onDrugTriggerChange()"> Yes</label>
+        <label class="radio-opt"><input type="radio" name="drug-trigger" value="No" onchange="onDrugTriggerChange()"> No</label>
+        <label class="radio-opt"><input type="radio" name="drug-trigger" value="Possible" onchange="onDrugTriggerChange()"> Possible</label>
       </div>
     </div>
-    <div class="field">
+    <div class="field conditional-field" id="cond-trigger-class">
       <label>Trigger Drug Class</label>
       <select id="trigger-class">
         <option value="">— N/A or select —</option>
@@ -752,11 +775,11 @@
         <option>Other</option>
       </select>
     </div>
-    <div class="field">
+    <div class="field conditional-field" id="cond-trigger-drug">
       <label>Specific Drug</label>
       <input type="text" id="trigger-drug" placeholder="e.g. Sitagliptin, Pembrolizumab">
     </div>
-    <div class="field">
+    <div class="field conditional-field" id="cond-drug-dc">
       <label>Drug Discontinued</label>
       <div class="radio-group">
         <label class="radio-opt"><input type="radio" name="drug-dc" value="Yes"> Yes</label>
@@ -764,7 +787,7 @@
         <label class="radio-opt"><input type="radio" name="drug-dc" value="NA"> N/A</label>
       </div>
     </div>
-    <div class="field">
+    <div class="field conditional-field" id="cond-drug-improv">
       <label>Improvement After Withdrawal</label>
       <div class="radio-group">
         <label class="radio-opt"><input type="radio" name="drug-improv" value="Yes"> Yes</label>
@@ -1030,6 +1053,7 @@ function resetAllFields() {
   pidState     = 'unknown';
   pidConfirmed = false;
   updateSaveLocks();
+  initConditionals();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1098,6 +1122,7 @@ function prefillFromLookup(data) {
     setRadio('ihd',             c.IHD);
     setRadio('malig',           c.Active_Malignancy);
     setRadio('autoimm',         c.Autoimmune_Disease);
+    onNeuroChange();
   }
   if (data.drug_triggers) {
     const d = data.drug_triggers;
@@ -1106,6 +1131,7 @@ function prefillFromLookup(data) {
     document.getElementById('trigger-drug').value = d.Specific_Drug || '';
     setRadio('drug-dc',         d.Drug_Discontinued);
     setRadio('drug-improv',     d.Improvement_After_Withdrawal);
+    onDrugTriggerChange();
   }
   if (data.outcomes) {
     const o = data.outcomes;
@@ -1253,7 +1279,65 @@ function clearTabDots() {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  SAVE LOCK — targets the universal save button
+//  LOCALSTORAGE — remember collector name across sessions
+// ══════════════════════════════════════════════════════════════
+(function initCollector() {
+  const saved = localStorage.getItem('bp_collector');
+  const el    = document.getElementById('collector-name');
+  if (saved && el) el.value = saved;
+  if (el) el.addEventListener('blur', () => {
+    if (el.value.trim()) localStorage.setItem('bp_collector', el.value.trim());
+  });
+})();
+
+// ══════════════════════════════════════════════════════════════
+//  NEW PATIENT — explicit clear with confirmation
+// ══════════════════════════════════════════════════════════════
+function newPatient() {
+  const pid = document.getElementById('global-pid').value.trim();
+  if (pid && !confirm('Clear all fields and start a new patient?')) return;
+  document.getElementById('global-pid').value = '';
+  lastLookedUpPID = '';
+  hideVerifyCard();
+  setPidBadge('', '');
+  clearTabDots();
+  resetAllFields();
+  showSection(0);
+  document.getElementById('global-pid').focus();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CONDITIONAL LOGIC
+// ══════════════════════════════════════════════════════════════
+function setConditional(id, visible) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('hidden', !visible);
+}
+
+function onDrugTriggerChange() {
+  const val = getRadio('drug-trigger');
+  const show = val === 'Yes' || val === 'Possible';
+  setConditional('cond-trigger-class',  show);
+  setConditional('cond-trigger-drug',   show);
+  setConditional('cond-drug-dc',        show);
+  setConditional('cond-drug-improv',    show);
+}
+
+function onNeuroChange() {
+  const anyChecked = document.querySelectorAll('input[name="neuro"]:checked').length > 0;
+  setConditional('cond-neuro-year', anyChecked);
+}
+
+// Init conditional state on page load
+function initConditionals() {
+  // Drug trigger fields start hidden (no selection yet)
+  setConditional('cond-trigger-class',  false);
+  setConditional('cond-trigger-drug',   false);
+  setConditional('cond-drug-dc',        false);
+  setConditional('cond-drug-improv',    false);
+  // Neuro year starts hidden
+  setConditional('cond-neuro-year',     false);
+}
 // ══════════════════════════════════════════════════════════════
 function updateSaveLocks() {
   const locked = (pidState === 'exists' || pidState === 'partial') && !pidConfirmed;
@@ -1719,6 +1803,7 @@ function addTreatmentLine() {
 // Init
 addTreatmentLine();
 addSeverityAssessment();
+initConditionals();
 </script>
 </body>
 </html>
