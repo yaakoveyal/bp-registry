@@ -224,6 +224,60 @@
     transition: width 0.4s ease;
   }
 
+  /* ── PID STATUS INDICATOR ── */
+  .pid-status {
+    font-family: var(--mono); font-size: 0.65rem; font-weight: 600;
+    letter-spacing: 0.08em; padding: 3px 10px; border-radius: 20px;
+    display: none; align-items: center; gap: 5px;
+  }
+  .pid-status.new    { background: rgba(45,106,79,0.25); color: #7ee8b0; display: flex; }
+  .pid-status.exists { background: rgba(192,57,43,0.25); color: #f5b7b1; display: flex; }
+  .pid-status.checking { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); display: flex; }
+
+  /* ── VERIFICATION CARD ── */
+  .verify-card {
+    display: none; margin-top: 14px;
+    border-radius: var(--radius); overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .verify-card.show { display: block; }
+
+  .verify-card-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; font-family: var(--mono);
+    font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em;
+  }
+  .verify-card.warning .verify-card-header { background: #fff8e6; color: #7a5c00; border-bottom: 1px solid #f0d080; }
+  .verify-card.info    .verify-card-header { background: #e8f0fb; color: #1a3a5c; border-bottom: 1px solid #c0d4f0; }
+  .verify-card.new-pid .verify-card-header { background: var(--success-light); color: var(--success); border-bottom: 1px solid #b0dfc5; }
+
+  .verify-card-icon { font-size: 0.9rem; }
+  .verify-card-body { padding: 12px 14px; background: #fff; }
+
+  .verify-profile {
+    display: flex; gap: 20px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 0.75rem; margin-bottom: 10px;
+  }
+  .verify-profile-item { display: flex; flex-direction: column; gap: 2px; }
+  .verify-profile-label { font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+  .verify-profile-val { font-weight: 600; color: var(--text); }
+
+  .verify-subinfo {
+    font-size: 0.72rem; color: var(--text-muted); margin-bottom: 10px;
+    font-family: var(--mono);
+  }
+
+  .verify-confirm {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.8rem; cursor: pointer; user-select: none;
+    padding: 8px 12px; border-radius: var(--radius);
+    border: 1px solid var(--border); background: var(--bg);
+    transition: all 0.12s;
+  }
+  .verify-confirm:hover { border-color: var(--accent); background: var(--accent-light); }
+  .verify-confirm input { accent-color: var(--accent); width: 14px; height: 14px; }
+  .verify-confirm.checked { border-color: var(--success); background: var(--success-light); font-weight: 500; }
+
   @media (max-width: 640px) {
     .header, .main { padding-left: 16px; padding-right: 16px; }
     .section-nav { padding: 0 16px; }
@@ -244,7 +298,8 @@
   <div class="header-bottom">
     <div class="pid-bar">
       <label>BP-ID</label>
-      <input type="text" id="global-pid" placeholder="BP-0001" oninput="syncPID(this.value)">
+      <input type="text" id="global-pid" placeholder="BP-0001" oninput="syncPID(this.value)" onblur="lookupPID(this.value)">
+      <span class="pid-status checking" id="pid-status"></span>
     </div>
     <div class="collector-bar">
       <label>Collector</label>
@@ -252,6 +307,15 @@
     </div>
   </div>
   <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:12.5%"></div></div>
+</div>
+
+<!-- ══ VERIFICATION CARD ══ -->
+<div id="verify-card" class="verify-card" style="margin:0 40px; border-radius:0 0 4px 4px; border-top:none;">
+  <div class="verify-card-header">
+    <span class="verify-card-icon" id="verify-icon">⚠</span>
+    <span id="verify-title">Existing Patient Found</span>
+  </div>
+  <div class="verify-card-body" id="verify-body"></div>
 </div>
 
 <!-- ══ NAV TABS ══ -->
@@ -879,10 +943,10 @@
 
 <script>
 // ══════════════════════════════════════════════
-//  CONFIGURATION — paste your Apps Script URL here
+//  CONFIGURATION
 // ══════════════════════════════════════════════
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxGrS2zX74tPRCMkV44V8vu4gFQMYSrDlh6SAD-wJEdjm1-5t2gAlm22KR3-HibabMFrw/exec';
-const SECRET_TOKEN    = 'BPReg2024Hd7xQmVk9'; // must match Apps Script
+const SECRET_TOKEN    = 'BPReg2024Hd7xQmVk9';
 
 const SHEET_NAMES = [
   'Patient_Baseline',
@@ -894,6 +958,18 @@ const SHEET_NAMES = [
   'Treatment_Courses',
   'Outcomes'
 ];
+
+// Sheets that overwrite on duplicate (static data)
+const STATIC_SHEETS = new Set([0, 1, 3, 4, 5, 7]);
+// Sheets that append on duplicate (longitudinal data)
+const LONGITUDINAL_SHEETS = new Set([2, 6]);
+
+// ── Patient lookup state ──
+// 'unknown' | 'new' | 'exists' | 'partial'
+let pidState = 'unknown';
+let pidProfile = null;      // baseline data if found
+let pidConfirmed = false;   // checkbox ticked
+let lastLookedUpPID = '';
 
 // ── Navigation ──
 let currentSection = 0;
@@ -913,6 +989,166 @@ function showSection(idx) {
 // ── PID sync ──
 function syncPID(val) {
   document.querySelectorAll('.pid-field').forEach(f => f.value = val);
+  // Reset state if PID changed after a lookup
+  if (val !== lastLookedUpPID) {
+    pidState = 'unknown';
+    pidConfirmed = false;
+    pidProfile = null;
+    hideVerifyCard();
+    setPidBadge('', '');
+  }
+}
+
+// ══════════════════════════════════════════════
+//  PID LOOKUP
+// ══════════════════════════════════════════════
+async function lookupPID(pid) {
+  pid = pid.trim();
+  if (!pid || pid === lastLookedUpPID) return;
+  if (!/^BP-\d{4}$/.test(pid)) return;
+
+  lastLookedUpPID = pid;
+  pidState = 'unknown';
+  pidConfirmed = false;
+  setPidBadge('checking', '⟳ Checking…');
+
+  try {
+    const params = new URLSearchParams({
+      token: SECRET_TOKEN,
+      action: 'lookup',
+      pid: pid
+    });
+    const resp = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
+    const json = await resp.json();
+
+    if (json.status === 'error') {
+      setPidBadge('', '');
+      hideVerifyCard();
+      return;
+    }
+
+    if (json.found) {
+      pidState = json.baseline ? 'exists' : 'partial';
+      pidProfile = json.baseline || null;
+      setPidBadge('exists', '⚠ Existing patient');
+      showVerifyCardExisting(pid, json);
+    } else {
+      pidState = 'new';
+      pidProfile = null;
+      setPidBadge('new', '✓ New patient');
+      showVerifyCardNew(pid);
+    }
+  } catch(e) {
+    setPidBadge('', '');
+    hideVerifyCard();
+  }
+}
+
+function setPidBadge(type, text) {
+  const el = document.getElementById('pid-status');
+  el.className = 'pid-status' + (type ? ' ' + type : '');
+  el.textContent = text;
+}
+
+function hideVerifyCard() {
+  const card = document.getElementById('verify-card');
+  card.className = 'verify-card';
+  card.style.display = 'none';
+}
+
+function showVerifyCardNew(pid) {
+  const card = document.getElementById('verify-card');
+  card.className = 'verify-card new-pid show';
+  card.style.display = 'block';
+  document.getElementById('verify-icon').textContent = '✓';
+  document.getElementById('verify-title').textContent = 'New Patient — No Existing Record';
+  document.getElementById('verify-body').innerHTML = `
+    <div class="verify-subinfo">
+      <strong>${pid}</strong> has not been entered before. All sections will create new records.
+    </div>`;
+  pidConfirmed = true; // new patient needs no confirmation
+  updateSaveLocks();
+}
+
+function showVerifyCardExisting(pid, data) {
+  const card = document.getElementById('verify-card');
+  const hasBaseline = !!data.baseline;
+  card.className = 'verify-card warning show';
+  card.style.display = 'block';
+  document.getElementById('verify-icon').textContent = '⚠';
+  document.getElementById('verify-title').textContent = 'Existing Patient Found — Verify Before Saving';
+
+  let profileHTML = '';
+  if (hasBaseline) {
+    const b = data.baseline;
+    profileHTML = `
+      <div class="verify-profile">
+        <div class="verify-profile-item">
+          <span class="verify-profile-label">Sex</span>
+          <span class="verify-profile-val">${b.sex || '—'}</span>
+        </div>
+        <div class="verify-profile-item">
+          <span class="verify-profile-label">Age at Dx</span>
+          <span class="verify-profile-val">${b.age || '—'} yrs</span>
+        </div>
+        <div class="verify-profile-item">
+          <span class="verify-profile-label">Year of Dx</span>
+          <span class="verify-profile-val">${b.year || '—'}</span>
+        </div>
+        <div class="verify-profile-item">
+          <span class="verify-profile-label">Ethnicity</span>
+          <span class="verify-profile-val">${b.ethnicity || '—'}</span>
+        </div>
+        <div class="verify-profile-item">
+          <span class="verify-profile-label">Collector</span>
+          <span class="verify-profile-val">${b.collector || '—'}</span>
+        </div>
+      </div>`;
+  } else {
+    profileHTML = `<div class="verify-subinfo">⚠ Found in other sheets but <strong>no Baseline entry</strong> yet — record may be incomplete.</div>`;
+  }
+
+  // Sheet presence summary
+  const sheetsFound = data.sheets_found || [];
+  const sheetSummary = sheetsFound.length
+    ? `<div class="verify-subinfo" style="margin-bottom:10px">Data exists in: <strong>${sheetsFound.join(', ')}</strong></div>`
+    : '';
+
+  // Longitudinal counts
+  let longInfo = '';
+  if (data.severity_count > 0)
+    longInfo += `<div class="verify-subinfo">Disease Severity: <strong>${data.severity_count}</strong> existing assessment(s) — saving will <em>add</em> a new one.</div>`;
+  if (data.treatment_count > 0)
+    longInfo += `<div class="verify-subinfo">Treatment Courses: <strong>${data.treatment_count}</strong> existing line(s) — saving will <em>add</em> a new line.</div>`;
+
+  document.getElementById('verify-body').innerHTML = `
+    ${profileHTML}
+    ${sheetSummary}
+    ${longInfo}
+    <label class="verify-confirm" id="verify-confirm-label">
+      <input type="checkbox" id="verify-checkbox" onchange="onConfirmChange(this)">
+      I confirm this is the correct patient — proceed with saving
+    </label>`;
+
+  pidConfirmed = false;
+  updateSaveLocks();
+}
+
+function onConfirmChange(cb) {
+  pidConfirmed = cb.checked;
+  const label = document.getElementById('verify-confirm-label');
+  if (label) label.classList.toggle('checked', cb.checked);
+  updateSaveLocks();
+}
+
+// ── Lock/unlock all Save buttons based on confirmation state ──
+function updateSaveLocks() {
+  const locked = (pidState === 'exists' || pidState === 'partial') && !pidConfirmed;
+  document.querySelectorAll('.btn-submit').forEach(btn => {
+    btn.disabled = locked;
+    btn.style.opacity = locked ? '0.45' : '1';
+    btn.title = locked ? 'Tick the confirmation checkbox above before saving' : '';
+  });
 }
 
 // ── BPDAI calc ──
@@ -1062,6 +1298,24 @@ async function submitSection(idx) {
     showToast('BP-ID must be BP-XXXX (e.g. BP-0042)', 'error'); return;
   }
 
+  // Force lookup if user never triggered blur (e.g. paste + immediate click)
+  if (pid !== lastLookedUpPID) {
+    showToast('Verifying patient ID…', 'loading');
+    await lookupPID(pid);
+    // After lookup, check lock state
+    if ((pidState === 'exists' || pidState === 'partial') && !pidConfirmed) {
+      showToast('Please confirm patient identity first', 'error');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+  }
+
+  if ((pidState === 'exists' || pidState === 'partial') && !pidConfirmed) {
+    showToast('Tick the confirmation checkbox first', 'error');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+
   const btns = document.querySelectorAll('.btn-submit');
   btns.forEach(b => { b.disabled = true; b.style.opacity = '0.6'; });
   showToast('Saving…', 'loading');
@@ -1072,7 +1326,6 @@ async function submitSection(idx) {
 
   try {
     for (const row of rowsToSend) {
-      // Use GET with URL params — fully CORS-safe with Apps Script
       const params = new URLSearchParams({
         token: SECRET_TOKEN,
         sheet: payload.sheet,
@@ -1089,7 +1342,11 @@ async function submitSection(idx) {
   } catch(e) {
     showToast('Error: ' + (e.message || 'check connection'), 'error');
   } finally {
-    btns.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+    btns.forEach(b => {
+      b.disabled = false;
+      b.style.opacity = '1';
+      updateSaveLocks(); // re-apply lock state after save
+    });
   }
 }
 
