@@ -730,7 +730,10 @@
     <div class="form-grid">
       <!-- Histology -->
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px;">
-        <div style="font-family:var(--mono);font-size:0.58rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Histology</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-family:var(--mono);font-size:0.58rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);">Histology</span>
+          <button onclick="classicBPHistology()" style="font-family:var(--mono);font-size:0.58rem;font-weight:600;letter-spacing:0.06em;background:var(--accent-light);color:var(--accent);border:1px solid var(--accent);padding:2px 8px;border-radius:2px;cursor:pointer;">⚡ Classic BP</button>
+        </div>
         <div style="display:flex;flex-direction:column;gap:7px;">
           <div style="display:flex;align-items:center;gap:10px;">
             <span style="font-family:var(--mono);font-size:0.62rem;color:var(--label);font-weight:600;min-width:100px;">Subepid. Blister</span>
@@ -925,6 +928,7 @@
           <label class="check-opt"><input type="checkbox" name="neuro" value="Parkinsons" onchange="onNeuroChange()"> Parkinson's</label>
           <label class="check-opt"><input type="checkbox" name="neuro" value="Stroke" onchange="onNeuroChange()"> Stroke</label>
           <label class="check-opt"><input type="checkbox" name="neuro" value="Epilepsy" onchange="onNeuroChange()"> Epilepsy</label>
+          <label class="check-opt"><input type="checkbox" name="neuro" value="MS" onchange="onNeuroChange()"> MS</label>
         </div>
       </div>
     </div>
@@ -2046,17 +2050,22 @@ function syncIIFTiterButtons(value) {
   });
 }
 
-// ── Classic BP histology quick-fill ──
+// ── Classic BP histology + DIF quick-fill ──
 function classicBPHistology() {
-  ['subepidermal', 'biopsy-eos'].forEach(name => {
-    const el = document.querySelector(`input[name="${name}"][value="Yes"]`);
-    if (el) {
-      el.checked = true;
-      el.closest('.radio-opt')?.classList.add('selected');
-      document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
-        if (r !== el) r.closest('.radio-opt')?.classList.remove('selected');
-      });
-    }
+  // Set Histology: Subepidermal Blister = Yes, Eos in Biopsy = Yes
+  // Set DIF: IgG = Positive, C3 = Positive
+  const fields = [
+    { name: 'subepidermal', value: 'Yes' },
+    { name: 'biopsy-eos',   value: 'Yes' },
+    { name: 'dif-igg',      value: 'Positive' },
+    { name: 'dif-c3',       value: 'Positive' },
+  ];
+  fields.forEach(({ name, value }) => {
+    document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
+      r.closest('.radio-opt')?.classList.remove('selected');
+    });
+    const el = document.querySelector(`input[name="${name}"][value="${value}"]`);
+    if (el) { el.checked = true; el.closest('.radio-opt')?.classList.add('selected'); }
   });
 }
 
