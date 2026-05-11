@@ -725,8 +725,16 @@
     <div class="subsection-title">CBC / Chemistry</div>
     <div class="form-grid cols-3">
       <div class="field">
-        <label>Absolute Eosinophils <span class="hint">cells/µL</span></label>
+        <label>Absolute Eosinophils at Diagnosis <span class="hint">cells/µL</span></label>
         <input type="number" id="eosinophils" min="0" placeholder="e.g. 800">
+      </div>
+      <div class="field">
+        <label>Peak Absolute Eosinophils <span class="hint">cells/µL</span></label>
+        <input type="number" id="peak-eosinophils" min="0" placeholder="e.g. 1200">
+      </div>
+      <div class="field">
+        <label>Date of Peak Eosinophils</label>
+        <input type="date" id="peak-eos-date">
       </div>
       <div class="field">
         <label>Albumin <span class="hint">g/dL</span></label>
@@ -837,6 +845,13 @@
         <div class="radio-group">
           <label class="radio-opt"><input type="radio" name="autoimm" value="Yes"> Yes</label>
           <label class="radio-opt"><input type="radio" name="autoimm" value="No"> No</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>CKD</label>
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="ckd" value="Yes"> Yes</label>
+          <label class="radio-opt"><input type="radio" name="ckd" value="No"> No</label>
         </div>
       </div>
     </div>
@@ -1271,8 +1286,10 @@ function prefillFromLookup(data) {
     document.getElementById('bp180').value       = l.Anti_BP180_IgG       || '';
     document.getElementById('bp230').value       = l.Anti_BP230_IgG       || '';
     document.getElementById('total-ige').value   = l.Total_IgE            || '';
-    document.getElementById('eosinophils').value = l.Absolute_Eosinophils || '';
-    document.getElementById('albumin').value     = l.Albumin              || '';
+    document.getElementById('eosinophils').value      = l.Absolute_Eosinophils     || '';
+    document.getElementById('peak-eosinophils').value = l.Peak_Absolute_Eosinophils || '';
+    document.getElementById('peak-eos-date').value    = l.Peak_Eos_Date              || '';
+    document.getElementById('albumin').value          = l.Albumin                    || '';
   }
   if (data.comorbidities) {
     const c = data.comorbidities;
@@ -1284,6 +1301,7 @@ function prefillFromLookup(data) {
     setRadio('ihd',             c.IHD);
     setRadio('malig',           c.Active_Malignancy);
     setRadio('autoimm',         c.Autoimmune_Disease);
+    setRadio('ckd',            c.CKD);
     onNeuroChange();
   }
   if (data.drug_triggers) {
@@ -2150,14 +2168,15 @@ function collectSection(idx) {
     case 3: return { sheet: SHEET_NAMES[3], row: [
       pid, val('lab-year'), getRadio('dif-igg'), getRadio('dif-c3'),
       getRadio('iif'), val('iif-titer'), val('bp180'), val('bp230'),
-      val('total-ige'), val('eosinophils'), val('albumin'),
+      val('total-ige'), val('eosinophils'), val('peak-eosinophils'), val('peak-eos-date'),
+      val('albumin'),
       getRadio('subepidermal'), getRadio('biopsy-eos'),
       collector, ts
     ]};
     case 4: return { sheet: SHEET_NAMES[4], row: [
       pid, getRadio('antipsych'), val('neuro-year'),
       getCheckboxes('neuro'), getRadio('dm'), getRadio('htn'),
-      getRadio('ihd'), getRadio('malig'), getRadio('autoimm'), collector, ts
+      getRadio('ihd'), getRadio('malig'), getRadio('autoimm'), getRadio('ckd'), collector, ts
     ]};
     case 5: {
       const rows = [];
