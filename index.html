@@ -349,6 +349,59 @@
   }
   .btn-new-patient:hover { color: #fff; border-color: rgba(255,255,255,0.6); }
 
+  /* ── LABS-SPECIFIC DENSITY ── */
+  #sec-3 .form-grid { gap: 8px 14px; }
+  #sec-3 input[type=number] { padding: 4px 8px; height: 30px; }
+  #sec-3 input[type=date]   { padding: 4px 8px; height: 30px; }
+  #sec-3 .radio-opt, #sec-3 .check-opt { padding: 3px 8px; font-size: 0.78rem; }
+
+  /* ── INPUT AFFIX (unit suffix inside input) ── */
+  .input-affix {
+    position: relative; display: inline-flex; align-items: center;
+  }
+  .input-affix input { padding-right: 38px; }
+  .input-affix .affix-unit {
+    position: absolute; right: 8px;
+    font-family: var(--mono); font-size: 0.6rem;
+    color: var(--text-muted); pointer-events: none;
+    white-space: nowrap;
+  }
+
+  /* ── INPUT GROUP (input + ceiling joined) ── */
+  .input-group {
+    display: flex; align-items: stretch;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; height: 30px;
+  }
+  .input-group input[type=number] {
+    border: none; border-radius: 0; flex: 1;
+    height: 100%; padding: 4px 8px; min-width: 0;
+    box-shadow: none;
+  }
+  .input-group input[type=number]:focus {
+    outline: none; box-shadow: none;
+    border-color: transparent;
+  }
+  .input-group:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
+  }
+  .input-group .group-addon {
+    display: flex; align-items: center;
+    padding: 0 8px; background: var(--bg);
+    border-left: 1px solid var(--border);
+    font-family: var(--mono); font-size: 0.65rem;
+    color: var(--text-muted); white-space: nowrap;
+    cursor: pointer; user-select: none; gap: 4px;
+  }
+  .input-group .group-addon input[type=checkbox] {
+    accent-color: var(--accent); margin: 0;
+  }
+  .input-group .group-addon.checked {
+    background: var(--error-light); color: var(--error);
+    border-color: var(--error);
+  }
+
   /* ── IIF QUICK BUTTONS ── */
   .iif-quick {
     font-family: var(--mono); font-size: 0.68rem; font-weight: 600;
@@ -667,29 +720,29 @@
     </div>
     <div class="field">
       <label>Year of Labs <span class="hint">at diagnosis</span></label>
-      <input type="number" id="lab-year" placeholder="e.g. 2019" min="1990" max="2030" style="max-width:110px;">
+      <input type="number" id="lab-year" placeholder="e.g. 2019" min="1990" max="2030" style="max-width:110px;" tabindex="1">
     </div>
   </div>
 
-  <!-- PATHOLOGY: compact horizontal rows -->
+  <!-- PATHOLOGY -->
   <div class="subsection" style="margin-top:10px;padding-top:8px;">
     <div class="subsection-title">Pathology</div>
     <div class="form-grid">
-      <!-- Histology compact -->
+      <!-- Histology -->
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px;">
         <div style="font-family:var(--mono);font-size:0.58rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Histology</div>
         <div style="display:flex;flex-direction:column;gap:7px;">
           <div style="display:flex;align-items:center;gap:10px;">
-            <span style="font-family:var(--mono);font-size:0.65rem;color:var(--label);font-weight:600;min-width:120px;">Subepid. Blister</span>
-            <div class="radio-group" style="gap:5px;">
+            <span style="font-family:var(--mono);font-size:0.62rem;color:var(--label);font-weight:600;min-width:100px;">Subepid. Blister</span>
+            <div class="radio-group" style="gap:4px;">
               <label class="radio-opt"><input type="radio" name="subepidermal" value="Yes"> Yes</label>
               <label class="radio-opt"><input type="radio" name="subepidermal" value="No"> No</label>
               <label class="radio-opt"><input type="radio" name="subepidermal" value="ND"> ND</label>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
-            <span style="font-family:var(--mono);font-size:0.65rem;color:var(--label);font-weight:600;min-width:120px;">Eos in Biopsy</span>
-            <div class="radio-group" style="gap:5px;">
+            <span style="font-family:var(--mono);font-size:0.62rem;color:var(--label);font-weight:600;min-width:100px;">Eos in Biopsy</span>
+            <div class="radio-group" style="gap:4px;">
               <label class="radio-opt"><input type="radio" name="biopsy-eos" value="Yes"> Yes</label>
               <label class="radio-opt"><input type="radio" name="biopsy-eos" value="No"> No</label>
               <label class="radio-opt"><input type="radio" name="biopsy-eos" value="ND"> ND</label>
@@ -697,21 +750,21 @@
           </div>
         </div>
       </div>
-      <!-- DIF compact -->
+      <!-- DIF -->
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px;">
         <div style="font-family:var(--mono);font-size:0.58rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Direct IF (DIF)</div>
         <div style="display:flex;flex-direction:column;gap:7px;">
           <div style="display:flex;align-items:center;gap:10px;">
-            <span style="font-family:var(--mono);font-size:0.65rem;color:var(--label);font-weight:600;min-width:30px;">IgG</span>
-            <div class="radio-group" style="gap:5px;">
+            <span style="font-family:var(--mono);font-size:0.62rem;color:var(--label);font-weight:600;min-width:30px;">IgG</span>
+            <div class="radio-group" style="gap:4px;">
               <label class="radio-opt"><input type="radio" name="dif-igg" value="Positive"> Pos</label>
               <label class="radio-opt"><input type="radio" name="dif-igg" value="Negative"> Neg</label>
               <label class="radio-opt"><input type="radio" name="dif-igg" value="ND"> ND</label>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
-            <span style="font-family:var(--mono);font-size:0.65rem;color:var(--label);font-weight:600;min-width:30px;">C3</span>
-            <div class="radio-group" style="gap:5px;">
+            <span style="font-family:var(--mono);font-size:0.62rem;color:var(--label);font-weight:600;min-width:30px;">C3</span>
+            <div class="radio-group" style="gap:4px;">
               <label class="radio-opt"><input type="radio" name="dif-c3" value="Positive"> Pos</label>
               <label class="radio-opt"><input type="radio" name="dif-c3" value="Negative"> Neg</label>
               <label class="radio-opt"><input type="radio" name="dif-c3" value="ND"> ND</label>
@@ -722,36 +775,41 @@
     </div>
   </div>
 
-  <!-- SEROLOGY: tight 3-col row -->
+  <!-- SEROLOGY: joined input groups with affixes -->
   <div class="subsection" style="margin-top:10px;padding-top:8px;">
     <div class="subsection-title">Serology</div>
     <div class="form-grid cols-3">
       <div class="field">
-        <label>Anti-BP180 IgG <span class="hint">U/mL · Pos &gt;20</span></label>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <input type="number" id="bp180" min="0" placeholder="e.g. 145" style="max-width:100px;">
-          <label class="check-opt" style="white-space:nowrap;font-size:0.72rem;">
-            <input type="checkbox" id="bp180-ceiling" onchange="onCeilingChange('bp180',this)"> &gt;200
+        <label>Anti-BP180 IgG <span class="hint">Pos &gt;20</span></label>
+        <div class="input-group">
+          <input type="number" id="bp180" min="0" placeholder="e.g. 145" tabindex="2">
+          <label class="group-addon" id="bp180-addon" title=">200 U/mL ceiling">
+            <input type="checkbox" id="bp180-ceiling" onchange="onCeilingChange('bp180',this)">&gt;200
           </label>
         </div>
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">U/mL</span>
       </div>
       <div class="field">
-        <label>Anti-BP230 IgG <span class="hint">U/mL · Pos &gt;20</span></label>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <input type="number" id="bp230" min="0" placeholder="e.g. 80" style="max-width:100px;">
-          <label class="check-opt" style="white-space:nowrap;font-size:0.72rem;">
-            <input type="checkbox" id="bp230-ceiling" onchange="onCeilingChange('bp230',this)"> &gt;150
+        <label>Anti-BP230 IgG <span class="hint">Pos &gt;20</span></label>
+        <div class="input-group">
+          <input type="number" id="bp230" min="0" placeholder="e.g. 80" tabindex="3">
+          <label class="group-addon" id="bp230-addon" title=">150 U/mL ceiling">
+            <input type="checkbox" id="bp230-ceiling" onchange="onCeilingChange('bp230',this)">&gt;150
           </label>
         </div>
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">U/mL</span>
       </div>
       <div class="field">
-        <label>Total IgE <span class="hint">IU/mL</span></label>
-        <input type="number" id="total-ige" min="0" placeholder="e.g. 450" style="max-width:100px;">
+        <label>Total IgE</label>
+        <div class="input-affix">
+          <input type="number" id="total-ige" min="0" placeholder="e.g. 450" style="max-width:110px;" tabindex="4">
+          <span class="affix-unit">IU/mL</span>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- IIF: Result + titer (titer hidden until Positive) -->
+  <!-- IIF: Result + titer conditional on Positive -->
   <div class="subsection" style="margin-top:10px;padding-top:8px;">
     <div class="subsection-title">Indirect IF (IIF)</div>
     <div style="display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;">
@@ -780,41 +838,48 @@
     </div>
   </div>
 
-  <!-- HEMATOLOGY: Eos cluster on one line -->
+  <!-- HEMATOLOGY: Eos cluster — baseline aligned -->
   <div class="subsection" style="margin-top:10px;padding-top:8px;">
     <div class="subsection-title">Hematology</div>
-    <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
-      <div class="field" style="flex-shrink:0;">
-        <label>Eosinophils <span class="hint">cells/µL</span></label>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div style="display:flex;flex-direction:column;gap:2px;">
-            <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">At Dx</span>
-            <input type="number" id="eosinophils" min="0" placeholder="e.g. 800" style="max-width:90px;" oninput="checkEosDelta()">
-          </div>
-          <span style="font-family:var(--mono);font-size:0.9rem;color:var(--text-muted);padding-bottom:2px;">—</span>
-          <div style="display:flex;flex-direction:column;gap:2px;">
-            <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">Peak</span>
-            <input type="number" id="peak-eosinophils" min="0" placeholder="e.g. 1200" style="max-width:90px;" oninput="checkEosDelta()">
-          </div>
-          <span style="font-family:var(--mono);font-size:0.72rem;color:var(--text-muted);padding-bottom:4px;">on</span>
-          <div style="display:flex;flex-direction:column;gap:2px;">
-            <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">Peak Date</span>
-            <input type="date" id="peak-eos-date">
-          </div>
-        </div>
-        <div id="eos-delta-warning" style="display:none;margin-top:5px;padding:4px 8px;background:#fdecea;border-radius:var(--radius);font-family:var(--mono);font-size:0.65rem;color:var(--error);">
-          ⚠ Peak lower than Dx value — verify
+    <div style="display:flex;align-items:flex-end;gap:0;flex-wrap:wrap;">
+      <!-- At Dx -->
+      <div style="display:flex;flex-direction:column;gap:3px;margin-right:6px;">
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);line-height:1;">Eos at Dx</span>
+        <div class="input-affix">
+          <input type="number" id="eosinophils" min="0" placeholder="800" style="max-width:85px;" oninput="checkEosDelta()" tabindex="5">
+          <span class="affix-unit">c/µL</span>
         </div>
       </div>
+      <span style="font-family:var(--mono);font-size:0.85rem;color:var(--text-muted);margin-bottom:6px;margin-right:6px;">—</span>
+      <!-- Peak -->
+      <div style="display:flex;flex-direction:column;gap:3px;margin-right:6px;">
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);line-height:1;">Eos Peak</span>
+        <div class="input-affix">
+          <input type="number" id="peak-eosinophils" min="0" placeholder="1200" style="max-width:85px;" oninput="checkEosDelta()" tabindex="6">
+          <span class="affix-unit">c/µL</span>
+        </div>
+      </div>
+      <span style="font-family:var(--mono);font-size:0.72rem;color:var(--text-muted);margin-bottom:7px;margin-right:6px;">on</span>
+      <!-- Peak Date -->
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);line-height:1;">Peak Date</span>
+        <input type="date" id="peak-eos-date">
+      </div>
+    </div>
+    <div id="eos-delta-warning" style="display:none;margin-top:5px;padding:4px 8px;background:#fdecea;border-radius:var(--radius);font-family:var(--mono);font-size:0.65rem;color:var(--error);">
+      ⚠ Peak lower than Dx value — verify
     </div>
   </div>
 
   <!-- CHEMISTRY -->
   <div class="subsection" style="margin-top:10px;padding-top:8px;">
     <div class="subsection-title">Chemistry</div>
-    <div class="field" style="max-width:200px;">
-      <label>Albumin <span class="hint">g/dL</span></label>
-      <input type="number" id="albumin" min="0" max="6" step="0.1" placeholder="e.g. 3.5" style="max-width:100px;">
+    <div style="display:flex;flex-direction:column;gap:4px;max-width:160px;">
+      <label style="font-family:var(--mono);font-size:0.66rem;font-weight:600;letter-spacing:0.09em;text-transform:uppercase;color:var(--label);">Albumin</label>
+      <div class="input-affix">
+        <input type="number" id="albumin" min="0" max="6" step="0.1" placeholder="e.g. 3.5" tabindex="7">
+        <span class="affix-unit">g/dL</span>
+      </div>
     </div>
   </div>
 
@@ -2012,16 +2077,17 @@ function checkEosDelta() {
 }
 function onCeilingChange(fieldId, cb) {
   const input = document.getElementById(fieldId);
+  const addon = document.getElementById(fieldId + '-addon');
   if (!input) return;
   if (cb.checked) {
     input.disabled = true;
     input.dataset.prevVal = input.value;
-    input.value = cb.id.includes('180') ? 201 : 151; // store as numeric ceiling+1
-    cb.closest('.check-opt')?.classList.add('selected');
+    input.value = fieldId === 'bp180' ? 201 : 151;
+    if (addon) addon.classList.add('checked');
   } else {
     input.disabled = false;
     input.value = input.dataset.prevVal || '';
-    cb.closest('.check-opt')?.classList.remove('selected');
+    if (addon) addon.classList.remove('checked');
   }
 }
 function calcSymptomsToDx() {
