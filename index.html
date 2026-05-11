@@ -709,11 +709,21 @@
     <div class="form-grid cols-3">
       <div class="field">
         <label>Anti-BP180 IgG <span class="hint">U/mL</span></label>
-        <input type="number" id="bp180" min="0" placeholder="e.g. 145">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" id="bp180" min="0" placeholder="e.g. 145" style="flex:1">
+          <label class="check-opt" style="white-space:nowrap;font-size:0.75rem;">
+            <input type="checkbox" id="bp180-ceiling" onchange="onCeilingChange('bp180',this)"> &gt;200
+          </label>
+        </div>
       </div>
       <div class="field">
         <label>Anti-BP230 IgG <span class="hint">U/mL</span></label>
-        <input type="number" id="bp230" min="0" placeholder="e.g. 80">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" id="bp230" min="0" placeholder="e.g. 80" style="flex:1">
+          <label class="check-opt" style="white-space:nowrap;font-size:0.75rem;">
+            <input type="checkbox" id="bp230-ceiling" onchange="onCeilingChange('bp230',this)"> &gt;150
+          </label>
+        </div>
       </div>
       <div class="field">
         <label>Total IgE <span class="hint">IU/mL</span></label>
@@ -1218,7 +1228,7 @@ function resetAllFields() {
   const stdh = document.getElementById('symptoms-to-dx-days');
   if (stdh) stdh.value = '';
   // Clear nav saved ticks
-  navTabs.forEach(t => t.classList.remove('saved'));
+  navTabs.forEach(t => t.classList.remove('saved', 'dot-green', 'dot-red'));
   // Reset state
   pidState       = 'unknown';
   pidConfirmed   = false;
@@ -1561,7 +1571,7 @@ function hasSectionData(idx) {
       return !!first.querySelector('input[type=radio]:checked');
     }
     case 6: {
-      const firstRow = document.querySelector('.treatment-row');
+      const firstRow = document.querySelector('.treatment-line-item');
       if (!firstRow) return false;
       return !!(firstRow.querySelector('.tx-drug')?.value || firstRow.querySelector('.tx-route')?.value);
     }
@@ -1588,8 +1598,13 @@ async function sendSection(idx) {
 //  SAVE ALL — fires all sections in PARALLEL
 // ══════════════════════════════════════════════════════════════
 async function saveAllSections() {
-  const pid = document.getElementById('global-pid').value.trim();
+  let pid = document.getElementById('global-pid').value.trim();
   if (!pid) { showToast('Enter a BP-ID first', 'error'); return; }
+  if (/^\d{1,4}$/.test(pid)) {
+    pid = 'BP-' + pid.padStart(4, '0');
+    document.getElementById('global-pid').value = pid;
+    syncPID(pid);
+  }
   if (!/^BP-\d{4}$/.test(pid)) { showToast('BP-ID must be BP-XXXX', 'error'); return; }
 
   if (pid !== lastLookedUpPID) {
@@ -1869,9 +1884,9 @@ function onDrugCardTriggerChange(radio) {
 function calcDrugToSymptoms(el) {
   const card    = el.closest('.drug-trigger-card');
   const display = card.querySelector('.drug-to-symptoms-display');
-  const drugDate = el.value ? new Date(el.value) : null;
+  const drugDate = el.value ? parseLocalDate(el.value) : null;
   const sympInput = document.getElementById('symptoms-date');
-  const sympDate  = sympInput?.value ? new Date(sympInput.value) : null;
+  const sympDate  = sympInput?.value ? parseLocalDate(sympInput.value) : null;
   if (drugDate && sympDate && sympDate >= drugDate) {
     if (display) display.textContent = daysBetween(drugDate, sympDate);
   } else {
@@ -1888,14 +1903,28 @@ function onSevTypeChange(select) {
   });
 }
 
-// ── Symptoms to diagnosis calculation (Baseline section) ──
+// Anti-BP ceiling checkbox — disables number input and sets display value
+function onCeilingChange(fieldId, cb) {
+  const input = document.getElementById(fieldId);
+  if (!input) return;
+  if (cb.checked) {
+    input.disabled = true;
+    input.dataset.prevVal = input.value;
+    input.value = cb.id.includes('180') ? 201 : 151; // store as numeric ceiling+1
+    cb.closest('.check-opt')?.classList.add('selected');
+  } else {
+    input.disabled = false;
+    input.value = input.dataset.prevVal || '';
+    cb.closest('.check-opt')?.classList.remove('selected');
+  }
+}
 function calcSymptomsToDx() {
   const sympDate = document.getElementById('symptoms-date')?.value;
   const dxDate   = document.getElementById('dx-date')?.value;
   const display  = document.getElementById('symptoms-to-dx-display');
   const hidden   = document.getElementById('symptoms-to-dx-days');
   if (sympDate && dxDate) {
-    const days = daysBetween(new Date(sympDate), new Date(dxDate));
+    const days = daysBetween(parseLocalDate(sympDate), parseLocalDate(dxDate));
     if (days >= 0) {
       if (display) display.textContent = days;
       if (hidden)  hidden.value = days;
@@ -1911,7 +1940,7 @@ function calcSymptomsToDx() {
 // ── Symptoms date in severity card (mirrors to Baseline) ──
 function calcSymptomsToDxFromSeverity(el) {
   const card     = el.closest('.severity-card');
-  const sympDate = el.value ? new Date(el.value) : null;
+  const sympDate = el.value ? parseLocalDate(el.value) : null;
   const dxDate   = getDxDate();
   const display  = card.querySelector('.sev-symptoms-to-dx');
   if (dxDate && sympDate && dxDate >= sympDate) {
@@ -1936,7 +1965,7 @@ function calcSymptomsToDxFromSeverity(el) {
 // Returns diagnosis date as a Date object (from dx-date field)
 function getDxDate() {
   const v = document.getElementById('dx-date')?.value;
-  return v ? new Date(v) : null;
+  return v ? parseLocalDate(v) : null;
 }
 
 // Baseline: when dx-date changes, nothing to display but store it
@@ -1956,13 +1985,20 @@ function daysBetween(d1, d2) {
   return Math.round((d2 - d1) / 86400000);
 }
 
+// Parse YYYY-MM-DD as LOCAL date (avoids UTC off-by-one in Israel UTC+2/3)
+function parseLocalDate(dateStr) {
+  if (!dateStr) return null;
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 // Severity: calculate months since diagnosis from assessment date
 function calcSeverityMonths(el) {
   const card    = el.closest('.severity-card');
   const display = card.querySelector('.sev-months-display');
   const hidden  = card.querySelector('.sev-months');
   const dxDate  = getDxDate();
-  const assDate = el.value ? new Date(el.value) : null;
+  const assDate = el.value ? parseLocalDate(el.value) : null;
   if (dxDate && assDate && assDate >= dxDate) {
     const months = Math.round(daysBetween(dxDate, assDate) / 30.44);
     if (display) display.textContent = months;
@@ -1977,7 +2013,7 @@ function calcSeverityMonths(el) {
 function calcFollowupMonths() {
   const dxDate  = getDxDate();
   const fuDate  = document.getElementById('followup-date')?.value
-    ? new Date(document.getElementById('followup-date').value) : null;
+    ? parseLocalDate(document.getElementById('followup-date').value) : null;
   const display = document.getElementById('followup-months-display');
   const hidden  = document.getElementById('followup-months');
   if (dxDate && fuDate && fuDate >= dxDate) {
@@ -1994,7 +2030,7 @@ function calcFollowupMonths() {
 function calcRemissionWeeks() {
   const dxDate  = getDxDate();
   const remDate = document.getElementById('date-remission')?.value
-    ? new Date(document.getElementById('date-remission').value) : null;
+    ? parseLocalDate(document.getElementById('date-remission').value) : null;
   const display = document.getElementById('time-remission-display');
   const hidden  = document.getElementById('time-remission');
   if (dxDate && remDate && remDate >= dxDate) {
@@ -2011,7 +2047,7 @@ function calcRemissionWeeks() {
 function calcRelapseWeeks() {
   const dxDate  = getDxDate();
   const relDate = document.getElementById('date-relapse')?.value
-    ? new Date(document.getElementById('date-relapse').value) : null;
+    ? parseLocalDate(document.getElementById('date-relapse').value) : null;
   const display = document.getElementById('time-relapse-display');
   const hidden  = document.getElementById('time-relapse');
   if (dxDate && relDate && relDate >= dxDate) {
@@ -2035,7 +2071,7 @@ function calcCumulativeCS(el) {
   const display = tRow.querySelector('.cs-cumulative');
   if (!display) return;
   if (start && end && dose) {
-    const days = Math.round((new Date(end) - new Date(start)) / 86400000);
+    const days = Math.round((parseLocalDate(end) - parseLocalDate(start)) / 86400000);
     display.textContent = days > 0 ? (dose * days).toLocaleString() : '—';
   } else { display.textContent = '—'; }
 }
@@ -2205,7 +2241,7 @@ function collectSection(idx) {
     }
     case 6: {
       const lines = [];
-      document.querySelectorAll('.treatment-row').forEach((row, i) => {
+      document.querySelectorAll('.treatment-line-item').forEach((row, i) => {
         const get   = cls => row.querySelector(cls)?.value || '';
         const cumEl = row.querySelector('.cs-cumulative');
         lines.push([
@@ -2243,7 +2279,7 @@ function collectSection(idx) {
 let lineCount = 0;
 function buildTreatmentLine(n) {
   return `
-  <div class="treatment-row">
+  <div class="treatment-row treatment-line-item">
     <div class="treatment-row-header">
       <span class="line-badge">LINE ${n}</span>
     </div>
@@ -2273,7 +2309,7 @@ function buildTreatmentLine(n) {
           <option>Topical</option><option>Subcutaneous</option>
         </select>
       </div>
-      <div class="field"><label>Initial Dose <span class="hint">mg/kg</span></label>
+      <div class="field"><label>Initial Dose <span class="hint">mg/kg systemic · g/day topical</span></label>
         <input type="number" class="tx-dose" placeholder="e.g. 0.5" step="0.1" min="0">
       </div>
       <div class="field"><label>Start Date</label>
