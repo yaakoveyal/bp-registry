@@ -1699,11 +1699,11 @@ function buildSeverityCard(n) {
         <input type="hidden" class="sev-months">
       </div>
       <!-- Symptom onset — only shown for Baseline assessment -->
-      <div class="field sev-symptoms-row" style="display:${n===1?'flex':'none'}; flex-direction:column; gap:4px;">
+      <div class="field sev-symptoms-row" style="display:none; flex-direction:column; gap:4px;">
         <label>Date of First Symptoms <span class="hint">Baseline only</span></label>
         <input type="date" class="sev-symptoms-date" onchange="calcSymptomsToDxFromSeverity(this)">
       </div>
-      <div class="score-visual sev-symptoms-row" style="display:${n===1?'flex':'none'}; flex-direction:column; justify-content:center;">
+      <div class="score-visual sev-symptoms-row" style="display:none; flex-direction:column; justify-content:center;">
         <div class="score-label">Symptoms→Dx (days)</div>
         <div class="score-val sev-symptoms-to-dx" style="font-size:1rem;">—</div>
       </div>
@@ -1735,6 +1735,13 @@ function addSeverityAssessment() {
   severityCount++;
   document.getElementById('severity-assessments')
     .insertAdjacentHTML('beforeend', buildSeverityCard(severityCount));
+  // Show symptom fields only on first (Baseline) card
+  if (severityCount === 1) {
+    const firstCard = document.querySelector('.severity-card');
+    firstCard.querySelectorAll('.sev-symptoms-row').forEach(el => {
+      el.style.display = 'flex';
+    });
+  }
 }
 
 function removeSeverityCard(btn) {
