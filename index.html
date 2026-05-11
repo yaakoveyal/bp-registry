@@ -501,6 +501,15 @@
       <input type="date" id="dx-date" onchange="onDxDateChange()">
     </div>
     <div class="field">
+      <label>Date of First Symptoms</label>
+      <input type="date" id="symptoms-date" onchange="calcSymptomsToDx()">
+    </div>
+    <div class="score-visual" style="display:flex;flex-direction:column;justify-content:center;">
+      <div class="score-label">Symptom→Diagnosis (days)</div>
+      <div class="score-val" id="symptoms-to-dx-display" style="font-size:1rem;">—</div>
+      <input type="hidden" id="symptoms-to-dx-days">
+    </div>
+    <div class="field">
       <label>Ethnicity</label>
       <select id="ethnicity">
         <option value="">— Select —</option>
@@ -725,6 +734,27 @@
       </div>
     </div>
   </div>
+  <div class="subsection">
+    <div class="subsection-title">Histology</div>
+    <div class="form-grid cols-3">
+      <div class="field">
+        <label>Subepidermal Blister</label>
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="subepidermal" value="Yes"> Yes</label>
+          <label class="radio-opt"><input type="radio" name="subepidermal" value="No"> No</label>
+          <label class="radio-opt"><input type="radio" name="subepidermal" value="ND"> ND</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Eosinophils in Biopsy</label>
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="biopsy-eos" value="Yes"> Yes</label>
+          <label class="radio-opt"><input type="radio" name="biopsy-eos" value="No"> No</label>
+          <label class="radio-opt"><input type="radio" name="biopsy-eos" value="ND"> ND</label>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="form-nav">
     <div class="nav-left"><button class="btn-prev" onclick="showSection(2)">← Back</button></div>
     <span class="page-indicator">4 / 8</span>
@@ -732,9 +762,6 @@
       <button class="btn-next" onclick="showSection(4)">Next →</button>
     </div>
   </div>
-</div>
-
-<!-- ══════════ 5. COMORBIDITIES ══════════ -->
 <div class="section" id="sec-4">
   <div class="section-header">
     <span class="section-num">05</span>
@@ -828,56 +855,16 @@
     <span class="section-title">Drug Triggers</span>
     <span class="section-note">→ Drug_Triggers</span>
   </div>
-  <div class="form-grid">
+  <div class="form-grid" style="margin-bottom:18px">
     <div class="field">
       <label>BP-ID <span class="req">*</span></label>
       <input type="text" class="pid-field" placeholder="BP-0001">
     </div>
-    <div class="field">
-      <label>Suspected Drug Trigger</label>
-      <div class="radio-group">
-        <label class="radio-opt"><input type="radio" name="drug-trigger" value="Yes" onchange="onDrugTriggerChange()"> Yes</label>
-        <label class="radio-opt"><input type="radio" name="drug-trigger" value="No" onchange="onDrugTriggerChange()"> No</label>
-        <label class="radio-opt"><input type="radio" name="drug-trigger" value="Possible" onchange="onDrugTriggerChange()"> Possible</label>
-      </div>
-    </div>
-    <div class="field conditional-field" id="cond-trigger-class">
-      <label>Trigger Drug Class</label>
-      <select id="trigger-class">
-        <option value="">— N/A or select —</option>
-        <option>DPP-4 inhibitor (gliptin)</option>
-        <option>PD-1 / PD-L1 inhibitor</option>
-        <option>Furosemide</option>
-        <option>Antipsychotic</option>
-        <option>ACE inhibitor</option>
-        <option>Beta-blocker</option>
-        <option>Penicillin / Antibiotic</option>
-        <option>NSAID</option>
-        <option>Other</option>
-      </select>
-    </div>
-    <div class="field conditional-field" id="cond-trigger-drug">
-      <label>Specific Drug</label>
-      <input type="text" id="trigger-drug" placeholder="e.g. Sitagliptin, Pembrolizumab">
-    </div>
-    <div class="field conditional-field" id="cond-drug-dc">
-      <label>Drug Discontinued</label>
-      <div class="radio-group">
-        <label class="radio-opt"><input type="radio" name="drug-dc" value="Yes"> Yes</label>
-        <label class="radio-opt"><input type="radio" name="drug-dc" value="No"> No</label>
-        <label class="radio-opt"><input type="radio" name="drug-dc" value="NA"> N/A</label>
-      </div>
-    </div>
-    <div class="field conditional-field" id="cond-drug-improv">
-      <label>Improvement After Withdrawal</label>
-      <div class="radio-group">
-        <label class="radio-opt"><input type="radio" name="drug-improv" value="Yes"> Yes</label>
-        <label class="radio-opt"><input type="radio" name="drug-improv" value="No"> No</label>
-        <label class="radio-opt"><input type="radio" name="drug-improv" value="Partial"> Partial</label>
-        <label class="radio-opt"><input type="radio" name="drug-improv" value="NA"> N/A</label>
-      </div>
-    </div>
   </div>
+  <div id="drug-trigger-cards">
+    <!-- Cards injected by JS -->
+  </div>
+  <button class="btn-add" onclick="addDrugTriggerCard()">＋ Add Suspected Drug</button>
   <div class="form-nav">
     <div class="nav-left"><button class="btn-prev" onclick="showSection(4)">← Back</button></div>
     <span class="page-indicator">6 / 8</span>
@@ -1204,6 +1191,15 @@ function resetAllFields() {
   severityCount = 0;
   const sa = document.getElementById('severity-assessments');
   if (sa) { sa.innerHTML = ''; addSeverityAssessment(); }
+  // Reset drug trigger cards
+  drugCardCount = 0;
+  const dc = document.getElementById('drug-trigger-cards');
+  if (dc) { dc.innerHTML = ''; addDrugTriggerCard(); }
+  // Reset symptom calc displays
+  const std = document.getElementById('symptoms-to-dx-display');
+  if (std) std.textContent = '—';
+  const stdh = document.getElementById('symptoms-to-dx-days');
+  if (stdh) stdh.value = '';
   // Clear nav saved ticks
   navTabs.forEach(t => t.classList.remove('saved'));
   // Reset state
@@ -1508,13 +1504,9 @@ function onNeuroChange() {
 
 // Init conditional state on page load
 function initConditionals() {
-  // Drug trigger fields start hidden (no selection yet)
-  setConditional('cond-trigger-class',  false);
-  setConditional('cond-trigger-drug',   false);
-  setConditional('cond-drug-dc',        false);
-  setConditional('cond-drug-improv',    false);
   // Neuro year starts hidden
-  setConditional('cond-neuro-year',     false);
+  setConditional('cond-neuro-year', false);
+  // Drug cards handle their own conditional logic internally
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1541,9 +1533,13 @@ function hasSectionData(idx) {
       if (!first) return false;
       return !!(first.querySelector('.sev-skin')?.value || first.querySelector('.sev-nrs')?.value);
     }
-    case 3: return !!(val('lab-year') || getRadio('dif-igg') || val('bp180'));
+    case 3: return !!(val('lab-year') || getRadio('dif-igg') || val('bp180') || getRadio('subepidermal'));
     case 4: return !!(getRadio('antipsych') || getCheckboxes('neuro') || getRadio('dm'));
-    case 5: return !!(getRadio('drug-trigger') || val('trigger-drug') || val('trigger-class'));
+    case 5: {
+      const first = document.querySelector('.drug-trigger-card');
+      if (!first) return false;
+      return !!first.querySelector('input[type=radio]:checked');
+    }
     case 6: {
       const firstRow = document.querySelector('.treatment-row');
       if (!firstRow) return false;
@@ -1686,7 +1682,7 @@ function buildSeverityCard(n) {
     <div class="form-grid cols-3">
       <div class="field">
         <label>Assessment Type <span class="req">*</span></label>
-        <select class="sev-type">
+        <select class="sev-type" onchange="onSevTypeChange(this)">
           <option>Baseline (Diagnosis)</option>
           <option>Follow-up</option>
           <option>Remission</option>
@@ -1701,6 +1697,15 @@ function buildSeverityCard(n) {
         <div class="score-label">Months Since Dx</div>
         <div class="score-val sev-months-display" style="font-size:1rem;">—</div>
         <input type="hidden" class="sev-months">
+      </div>
+      <!-- Symptom onset — only shown for Baseline assessment -->
+      <div class="field sev-symptoms-row" style="display:${n===1?'flex':'none'}; flex-direction:column; gap:4px;">
+        <label>Date of First Symptoms <span class="hint">Baseline only</span></label>
+        <input type="date" class="sev-symptoms-date" onchange="calcSymptomsToDxFromSeverity(this)">
+      </div>
+      <div class="score-visual sev-symptoms-row" style="display:${n===1?'flex':'none'}; flex-direction:column; justify-content:center;">
+        <div class="score-label">Symptoms→Dx (days)</div>
+        <div class="score-val sev-symptoms-to-dx" style="font-size:1rem;">—</div>
       </div>
       <div class="field">
         <label>Pruritus NRS <span class="hint">0–10</span></label>
@@ -1748,6 +1753,156 @@ function calcSeverityTotal(el) {
 function calcBPDAI() {}
 
 // ══════════════════════════════════════════════════════════════
+//  DRUG TRIGGER CARDS
+// ══════════════════════════════════════════════════════════════
+let drugCardCount = 0;
+
+function buildDrugTriggerCard(n) {
+  return `
+  <div class="treatment-row drug-trigger-card">
+    <div class="treatment-row-header">
+      <span class="line-badge">DRUG ${n}</span>
+      ${n > 1 ? `<button onclick="removeDrugCard(this)" style="margin-left:auto;font-family:var(--mono);font-size:0.62rem;background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 8px;border-radius:2px;cursor:pointer;">✕ Remove</button>` : ''}
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Suspected Drug Trigger</label>
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="drug-trigger-${n}" value="Yes" onchange="onDrugCardTriggerChange(this)"> Yes</label>
+          <label class="radio-opt"><input type="radio" name="drug-trigger-${n}" value="No" onchange="onDrugCardTriggerChange(this)"> No</label>
+          <label class="radio-opt"><input type="radio" name="drug-trigger-${n}" value="Possible" onchange="onDrugCardTriggerChange(this)"> Possible</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Date Drug Started</label>
+        <input type="date" class="drug-start-date" onchange="calcDrugToSymptoms(this)">
+      </div>
+      <div class="score-visual" style="display:flex;flex-direction:column;justify-content:center;">
+        <div class="score-label">Drug→Symptoms (days)</div>
+        <div class="score-val drug-to-symptoms-display" style="font-size:1rem;">—</div>
+      </div>
+      <div class="field drug-detail-field conditional-field hidden">
+        <label>Trigger Drug Class</label>
+        <select class="drug-trigger-class">
+          <option value="">— N/A or select —</option>
+          <option>DPP-4 inhibitor (gliptin)</option>
+          <option>PD-1 / PD-L1 inhibitor</option>
+          <option>Furosemide</option>
+          <option>Antipsychotic</option>
+          <option>ACE inhibitor</option>
+          <option>Beta-blocker</option>
+          <option>Penicillin / Antibiotic</option>
+          <option>NSAID</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field drug-detail-field conditional-field hidden">
+        <label>Specific Drug</label>
+        <input type="text" class="drug-specific" placeholder="e.g. Sitagliptin">
+      </div>
+      <div class="field drug-detail-field conditional-field hidden">
+        <label>Drug Discontinued</label>
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="drug-dc-${n}" value="Yes"> Yes</label>
+          <label class="radio-opt"><input type="radio" name="drug-dc-${n}" value="No"> No</label>
+          <label class="radio-opt"><input type="radio" name="drug-dc-${n}" value="NA"> N/A</label>
+        </div>
+      </div>
+      <div class="field drug-detail-field conditional-field hidden">
+        <label>Improvement After Withdrawal</label>
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="drug-improv-${n}" value="Yes"> Yes</label>
+          <label class="radio-opt"><input type="radio" name="drug-improv-${n}" value="No"> No</label>
+          <label class="radio-opt"><input type="radio" name="drug-improv-${n}" value="Partial"> Partial</label>
+          <label class="radio-opt"><input type="radio" name="drug-improv-${n}" value="NA"> N/A</label>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function addDrugTriggerCard() {
+  drugCardCount++;
+  document.getElementById('drug-trigger-cards')
+    .insertAdjacentHTML('beforeend', buildDrugTriggerCard(drugCardCount));
+}
+
+function removeDrugCard(btn) {
+  btn.closest('.drug-trigger-card').remove();
+}
+
+function onDrugCardTriggerChange(radio) {
+  const card = radio.closest('.drug-trigger-card');
+  const show = radio.value === 'Yes' || radio.value === 'Possible';
+  card.querySelectorAll('.drug-detail-field').forEach(f => {
+    f.classList.toggle('hidden', !show);
+  });
+}
+
+function calcDrugToSymptoms(el) {
+  const card    = el.closest('.drug-trigger-card');
+  const display = card.querySelector('.drug-to-symptoms-display');
+  const drugDate = el.value ? new Date(el.value) : null;
+  const sympInput = document.getElementById('symptoms-date');
+  const sympDate  = sympInput?.value ? new Date(sympInput.value) : null;
+  if (drugDate && sympDate && sympDate >= drugDate) {
+    if (display) display.textContent = daysBetween(drugDate, sympDate);
+  } else {
+    if (display) display.textContent = '—';
+  }
+}
+
+// ── Show/hide symptom row when assessment type changes ──
+function onSevTypeChange(select) {
+  const card = select.closest('.severity-card');
+  const isBaseline = select.value === 'Baseline (Diagnosis)';
+  card.querySelectorAll('.sev-symptoms-row').forEach(el => {
+    el.style.display = isBaseline ? 'flex' : 'none';
+  });
+}
+
+// ── Symptoms to diagnosis calculation (Baseline section) ──
+function calcSymptomsToDx() {
+  const sympDate = document.getElementById('symptoms-date')?.value;
+  const dxDate   = document.getElementById('dx-date')?.value;
+  const display  = document.getElementById('symptoms-to-dx-display');
+  const hidden   = document.getElementById('symptoms-to-dx-days');
+  if (sympDate && dxDate) {
+    const days = daysBetween(new Date(sympDate), new Date(dxDate));
+    if (days >= 0) {
+      if (display) display.textContent = days;
+      if (hidden)  hidden.value = days;
+      // Recalc drug→symptoms for all drug cards
+      document.querySelectorAll('.drug-start-date').forEach(el => calcDrugToSymptoms(el));
+      return;
+    }
+  }
+  if (display) display.textContent = '—';
+  if (hidden)  hidden.value = '';
+}
+
+// ── Symptoms date in severity card (mirrors to Baseline) ──
+function calcSymptomsToDxFromSeverity(el) {
+  const card     = el.closest('.severity-card');
+  const sympDate = el.value ? new Date(el.value) : null;
+  const dxDate   = getDxDate();
+  const display  = card.querySelector('.sev-symptoms-to-dx');
+  if (dxDate && sympDate && dxDate >= sympDate) {
+    const days = daysBetween(sympDate, dxDate);
+    if (display) display.textContent = days;
+    // Mirror back to baseline field
+    const baseInput = document.getElementById('symptoms-date');
+    if (baseInput && !baseInput.value) {
+      baseInput.value = el.value;
+      document.getElementById('symptoms-to-dx-days').value = days;
+      document.getElementById('symptoms-to-dx-display').textContent = days;
+    }
+  } else {
+    if (display) display.textContent = '—';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
 //  DATE CALCULATIONS
 // ══════════════════════════════════════════════════════════════
 
@@ -1759,7 +1914,6 @@ function getDxDate() {
 
 // Baseline: when dx-date changes, nothing to display but store it
 function onDxDateChange() {
-  // Recalculate all severity cards in case they have dates
   document.querySelectorAll('.severity-card').forEach(card => {
     const dateEl = card.querySelector('.sev-date');
     if (dateEl?.value) calcSeverityMonths(dateEl);
@@ -1767,6 +1921,7 @@ function onDxDateChange() {
   calcFollowupMonths();
   calcRemissionWeeks();
   calcRelapseWeeks();
+  calcSymptomsToDx();
 }
 
 // Days between two dates
@@ -1955,7 +2110,9 @@ function collectSection(idx) {
       const dxYear  = dxDate ? new Date(dxDate).getFullYear() : '';
       return { sheet: SHEET_NAMES[0], row: [
         pid, getRadio('sex'), val('age-dx'), dxYear,
-        val('ethnicity'), val('frailty'), collector, ts
+        val('ethnicity'), val('frailty'),
+        val('symptoms-date'), val('symptoms-to-dx-days'),
+        collector, ts
       ]};
     }
     case 1: return { sheet: SHEET_NAMES[1], row: [
@@ -1984,17 +2141,40 @@ function collectSection(idx) {
     case 3: return { sheet: SHEET_NAMES[3], row: [
       pid, val('lab-year'), getRadio('dif-igg'), getRadio('dif-c3'),
       getRadio('iif'), val('iif-titer'), val('bp180'), val('bp230'),
-      val('total-ige'), val('eosinophils'), val('albumin'), collector, ts
+      val('total-ige'), val('eosinophils'), val('albumin'),
+      getRadio('subepidermal'), getRadio('biopsy-eos'),
+      collector, ts
     ]};
     case 4: return { sheet: SHEET_NAMES[4], row: [
       pid, getRadio('antipsych'), val('neuro-year'),
       getCheckboxes('neuro'), getRadio('dm'), getRadio('htn'),
       getRadio('ihd'), getRadio('malig'), getRadio('autoimm'), collector, ts
     ]};
-    case 5: return { sheet: SHEET_NAMES[5], row: [
-      pid, getRadio('drug-trigger'), val('trigger-class'),
-      val('trigger-drug'), getRadio('drug-dc'), getRadio('drug-improv'), collector, ts
-    ]};
+    case 5: {
+      const rows = [];
+      document.querySelectorAll('.drug-trigger-card').forEach((card, i) => {
+        const n = i + 1;
+        const trigVal  = card.querySelector(`input[name="drug-trigger-${n}"]:checked`)?.value || '';
+        const drugDate = card.querySelector('.drug-start-date')?.value || '';
+        const sympDate = document.getElementById('symptoms-date')?.value || '';
+        let drugToSymp = '';
+        if (drugDate && sympDate) {
+          const d = daysBetween(new Date(drugDate), new Date(sympDate));
+          if (d >= 0) drugToSymp = d;
+        }
+        rows.push([
+          pid, n,
+          trigVal,
+          card.querySelector('.drug-trigger-class')?.value || '',
+          card.querySelector('.drug-specific')?.value      || '',
+          card.querySelector(`input[name="drug-dc-${n}"]:checked`)?.value     || '',
+          card.querySelector(`input[name="drug-improv-${n}"]:checked`)?.value || '',
+          drugDate,
+          collector, ts
+        ]);
+      });
+      return { sheet: SHEET_NAMES[5], rows };
+    }
     case 6: {
       const lines = [];
       document.querySelectorAll('.treatment-row').forEach((row, i) => {
@@ -2126,6 +2306,7 @@ function addTreatmentLine() {
 // Init
 addTreatmentLine();
 addSeverityAssessment();
+addDrugTriggerCard();
 initConditionals();
 </script>
 </body>
