@@ -549,20 +549,22 @@
       <label>BP-ID <span class="req">*</span></label>
       <input type="text" class="pid-field" placeholder="BP-0001">
     </div>
-    <div class="field">
-      <label>Clinical Variant <span class="req">*</span></label>
-      <select id="clinical-variant">
-        <option value="">— Select —</option>
-        <option>Classic BP</option>
-        <option>Vegetating BP</option>
-        <option>Vesicular BP</option>
-        <option>Dyshidrosiform BP</option>
-        <option>Nodular BP</option>
-        <option>Eczematous BP</option>
-        <option>Urticarial BP</option>
-        <option>Drug-induced BP</option>
-        <option>Other</option>
-      </select>
+    <div class="field span-2">
+      <label>Clinical Variant <span class="req">*</span> <span class="hint">check all that apply</span></label>
+      <div class="check-group">
+        <label class="check-opt"><input type="checkbox" name="clinical-variant" value="Classic BP"> Classic BP</label>
+        <label class="check-opt"><input type="checkbox" name="clinical-variant" value="Vegetating BP"> Vegetating BP</label>
+        <label class="check-opt"><input type="checkbox" name="clinical-variant" value="Vesicular BP"> Vesicular BP</label>
+        <label class="check-opt"><input type="checkbox" name="clinical-variant" value="Dyshidrosiform BP"> Dyshidrosiform BP</label>
+        <label class="check-opt"><input type="checkbox" name="clinical-variant" value="Nodular BP"> Nodular BP</label>
+        <label class="check-opt"><input type="checkbox" name="clinical-variant" value="Eczematous BP"> Eczematous BP</label>
+        <label class="check-opt"><input type="checkbox" name="clinical-variant" value="Urticarial BP"> Urticarial BP</label>
+        <label class="check-opt"><input type="checkbox" name="clinical-variant" value="Drug-induced BP"> Drug-induced BP</label>
+        <label class="check-opt" id="variant-other-opt"><input type="checkbox" name="clinical-variant" value="Other" onchange="onVariantOtherChange(this)"> Other</label>
+      </div>
+      <input type="text" id="variant-other-text" placeholder="Specify other variant…"
+        style="margin-top:8px; display:none;"
+        oninput="syncVariantOther()">
     </div>
     <div class="field">
       <label>Mucosal Involvement</label>
@@ -1191,6 +1193,9 @@ function resetAllFields() {
   // Reset BPDAI display
   const bt = document.getElementById('bpdai-total');
   if (bt) bt.textContent = '—';
+  // Reset Other variant text field
+  const vot = document.getElementById('variant-other-text');
+  if (vot) { vot.value = ''; vot.style.display = 'none'; }
   // Reset treatment lines
   lineCount = 0;
   const tl = document.getElementById('treatment-lines');
@@ -1253,7 +1258,7 @@ function prefillFromLookup(data) {
   }
   if (data.phenotype) {
     const p = data.phenotype;
-    setSelect('clinical-variant',    p.Clinical_Variant);
+    prefillClinicalVariant(p.Clinical_Variant);
     setRadio('mucosal',              p.Mucosal_Involvement);
     setCheckboxes('dist',            p.Anatomic_Distribution);
     setRadio('pruritus-present',     p.Pruritus_Present);
@@ -1530,7 +1535,7 @@ function updateSaveLocks() {
 function hasSectionData(idx) {
   switch (idx) {
     case 0: return !!(getRadio('sex') || val('age-dx') || val('dx-date'));
-    case 1: return !!(val('clinical-variant') || getRadio('mucosal') || getCheckboxes('dist'));
+    case 1: return !!(getClinicalVariant() || getRadio('mucosal') || getCheckboxes('dist'));
     case 2: {
       const first = document.querySelector('.severity-card');
       if (!first) return false;
@@ -1888,6 +1893,49 @@ function getCheckboxes(name) {
   return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`))
     .map(el => el.value).join(', ');
 }
+
+// ── Clinical variant — multi-select with Other free text ──
+function getClinicalVariant() {
+  const checked = Array.from(document.querySelectorAll('input[name="clinical-variant"]:checked'))
+    .map(el => el.value);
+  if (checked.includes('Other')) {
+    const otherText = document.getElementById('variant-other-text')?.value.trim();
+    if (otherText) {
+      return checked.filter(v => v !== 'Other').concat(otherText).join(', ');
+    }
+  }
+  return checked.join(', ');
+}
+
+function onVariantOtherChange(cb) {
+  const textEl = document.getElementById('variant-other-text');
+  if (textEl) {
+    textEl.style.display = cb.checked ? 'block' : 'none';
+    if (!cb.checked) textEl.value = '';
+  }
+}
+
+function prefillClinicalVariant(storedValue) {
+  if (!storedValue) return;
+  const known = ['Classic BP','Vegetating BP','Vesicular BP','Dyshidrosiform BP',
+                 'Nodular BP','Eczematous BP','Urticarial BP','Drug-induced BP'];
+  const parts = storedValue.split(',').map(v => v.trim());
+  parts.forEach(v => {
+    if (known.includes(v)) {
+      const el = document.querySelector(`input[name="clinical-variant"][value="${v}"]`);
+      if (el) { el.checked = true; el.closest('.check-opt')?.classList.add('selected'); }
+    } else if (v) {
+      const otherEl = document.querySelector('input[name="clinical-variant"][value="Other"]');
+      if (otherEl) {
+        otherEl.checked = true;
+        otherEl.closest('.check-opt')?.classList.add('selected');
+        onVariantOtherChange(otherEl);
+        const textEl = document.getElementById('variant-other-text');
+        if (textEl) textEl.value = v;
+      }
+    }
+  });
+}
 function val(id) {
   const el = document.getElementById(id);
   return el ? el.value : '';
@@ -1911,7 +1959,7 @@ function collectSection(idx) {
       ]};
     }
     case 1: return { sheet: SHEET_NAMES[1], row: [
-      pid, val('clinical-variant'), getRadio('mucosal'),
+      pid, getClinicalVariant(), getRadio('mucosal'),
       getCheckboxes('dist'), getRadio('pruritus-present'), collector, ts
     ]};
     case 2: {
