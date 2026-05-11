@@ -667,105 +667,109 @@
     </div>
     <div class="field">
       <label>Year of Labs <span class="hint">at diagnosis</span></label>
-      <input type="number" id="lab-year" placeholder="e.g. 2019" min="1990" max="2030">
+      <input type="number" id="lab-year" placeholder="e.g. 2019" min="1990" max="2030" style="max-width:110px;">
     </div>
   </div>
 
-  <!-- 1. PATHOLOGY: Histology + DIF side by side -->
-  <div class="subsection">
+  <!-- PATHOLOGY: compact horizontal rows -->
+  <div class="subsection" style="margin-top:10px;padding-top:8px;">
     <div class="subsection-title">Pathology</div>
     <div class="form-grid">
-      <!-- Histology -->
-      <div style="display:flex;flex-direction:column;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
-        <div style="font-family:var(--mono);font-size:0.6rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:2px;">Histology</div>
-        <div class="field">
-          <label>Subepidermal Blister</label>
-          <div class="radio-group">
-            <label class="radio-opt"><input type="radio" name="subepidermal" value="Yes"> Yes</label>
-            <label class="radio-opt"><input type="radio" name="subepidermal" value="No"> No</label>
-            <label class="radio-opt"><input type="radio" name="subepidermal" value="ND"> ND</label>
+      <!-- Histology compact -->
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px;">
+        <div style="font-family:var(--mono);font-size:0.58rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Histology</div>
+        <div style="display:flex;flex-direction:column;gap:7px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-family:var(--mono);font-size:0.65rem;color:var(--label);font-weight:600;min-width:120px;">Subepid. Blister</span>
+            <div class="radio-group" style="gap:5px;">
+              <label class="radio-opt"><input type="radio" name="subepidermal" value="Yes"> Yes</label>
+              <label class="radio-opt"><input type="radio" name="subepidermal" value="No"> No</label>
+              <label class="radio-opt"><input type="radio" name="subepidermal" value="ND"> ND</label>
+            </div>
           </div>
-        </div>
-        <div class="field">
-          <label>Eosinophils in Biopsy</label>
-          <div class="radio-group">
-            <label class="radio-opt"><input type="radio" name="biopsy-eos" value="Yes"> Yes</label>
-            <label class="radio-opt"><input type="radio" name="biopsy-eos" value="No"> No</label>
-            <label class="radio-opt"><input type="radio" name="biopsy-eos" value="ND"> ND</label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-family:var(--mono);font-size:0.65rem;color:var(--label);font-weight:600;min-width:120px;">Eos in Biopsy</span>
+            <div class="radio-group" style="gap:5px;">
+              <label class="radio-opt"><input type="radio" name="biopsy-eos" value="Yes"> Yes</label>
+              <label class="radio-opt"><input type="radio" name="biopsy-eos" value="No"> No</label>
+              <label class="radio-opt"><input type="radio" name="biopsy-eos" value="ND"> ND</label>
+            </div>
           </div>
         </div>
       </div>
-      <!-- DIF -->
-      <div style="display:flex;flex-direction:column;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
-        <div style="font-family:var(--mono);font-size:0.6rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:2px;">Direct IF (DIF)</div>
-        <div class="field">
-          <label>IgG</label>
-          <div class="radio-group">
-            <label class="radio-opt"><input type="radio" name="dif-igg" value="Positive"> Pos</label>
-            <label class="radio-opt"><input type="radio" name="dif-igg" value="Negative"> Neg</label>
-            <label class="radio-opt"><input type="radio" name="dif-igg" value="ND"> ND</label>
+      <!-- DIF compact -->
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px;">
+        <div style="font-family:var(--mono);font-size:0.58rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Direct IF (DIF)</div>
+        <div style="display:flex;flex-direction:column;gap:7px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-family:var(--mono);font-size:0.65rem;color:var(--label);font-weight:600;min-width:30px;">IgG</span>
+            <div class="radio-group" style="gap:5px;">
+              <label class="radio-opt"><input type="radio" name="dif-igg" value="Positive"> Pos</label>
+              <label class="radio-opt"><input type="radio" name="dif-igg" value="Negative"> Neg</label>
+              <label class="radio-opt"><input type="radio" name="dif-igg" value="ND"> ND</label>
+            </div>
           </div>
-        </div>
-        <div class="field">
-          <label>C3</label>
-          <div class="radio-group">
-            <label class="radio-opt"><input type="radio" name="dif-c3" value="Positive"> Pos</label>
-            <label class="radio-opt"><input type="radio" name="dif-c3" value="Negative"> Neg</label>
-            <label class="radio-opt"><input type="radio" name="dif-c3" value="ND"> ND</label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-family:var(--mono);font-size:0.65rem;color:var(--label);font-weight:600;min-width:30px;">C3</span>
+            <div class="radio-group" style="gap:5px;">
+              <label class="radio-opt"><input type="radio" name="dif-c3" value="Positive"> Pos</label>
+              <label class="radio-opt"><input type="radio" name="dif-c3" value="Negative"> Neg</label>
+              <label class="radio-opt"><input type="radio" name="dif-c3" value="ND"> ND</label>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 2. SEROLOGY: BP180, BP230, IgE on one row -->
-  <div class="subsection">
+  <!-- SEROLOGY: tight 3-col row -->
+  <div class="subsection" style="margin-top:10px;padding-top:8px;">
     <div class="subsection-title">Serology</div>
     <div class="form-grid cols-3">
       <div class="field">
         <label>Anti-BP180 IgG <span class="hint">U/mL · Pos &gt;20</span></label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="number" id="bp180" min="0" placeholder="e.g. 145" style="flex:1">
-          <label class="check-opt" style="white-space:nowrap;font-size:0.75rem;">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="number" id="bp180" min="0" placeholder="e.g. 145" style="max-width:100px;">
+          <label class="check-opt" style="white-space:nowrap;font-size:0.72rem;">
             <input type="checkbox" id="bp180-ceiling" onchange="onCeilingChange('bp180',this)"> &gt;200
           </label>
         </div>
       </div>
       <div class="field">
         <label>Anti-BP230 IgG <span class="hint">U/mL · Pos &gt;20</span></label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="number" id="bp230" min="0" placeholder="e.g. 80" style="flex:1">
-          <label class="check-opt" style="white-space:nowrap;font-size:0.75rem;">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="number" id="bp230" min="0" placeholder="e.g. 80" style="max-width:100px;">
+          <label class="check-opt" style="white-space:nowrap;font-size:0.72rem;">
             <input type="checkbox" id="bp230-ceiling" onchange="onCeilingChange('bp230',this)"> &gt;150
           </label>
         </div>
       </div>
       <div class="field">
         <label>Total IgE <span class="hint">IU/mL</span></label>
-        <input type="number" id="total-ige" min="0" placeholder="e.g. 450">
+        <input type="number" id="total-ige" min="0" placeholder="e.g. 450" style="max-width:100px;">
       </div>
     </div>
   </div>
 
-  <!-- 3. IIF: Result + Quick-fill titer buttons -->
-  <div class="subsection">
+  <!-- IIF: Result + titer (titer hidden until Positive) -->
+  <div class="subsection" style="margin-top:10px;padding-top:8px;">
     <div class="subsection-title">Indirect IF (IIF)</div>
-    <div class="form-grid">
-      <div class="field">
+    <div style="display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;">
+      <div class="field" style="flex-shrink:0;">
         <label>Result</label>
         <div class="radio-group">
-          <label class="radio-opt"><input type="radio" name="iif" value="Positive"> Pos</label>
-          <label class="radio-opt"><input type="radio" name="iif" value="Negative"> Neg</label>
-          <label class="radio-opt"><input type="radio" name="iif" value="ND"> ND</label>
+          <label class="radio-opt"><input type="radio" name="iif" value="Positive" onchange="onIIFResultChange(this)"> Pos</label>
+          <label class="radio-opt"><input type="radio" name="iif" value="Negative" onchange="onIIFResultChange(this)"> Neg</label>
+          <label class="radio-opt"><input type="radio" name="iif" value="ND"       onchange="onIIFResultChange(this)"> ND</label>
         </div>
       </div>
-      <div class="field">
-        <label>Titer <span class="hint">quick-select or choose all</span></label>
+      <div class="field" id="iif-titer-row" style="display:none;flex:1;">
+        <label>Titer</label>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
           <button class="iif-quick" onclick="setIIFTiter('1:40')"  data-titer="1:40">1:40</button>
           <button class="iif-quick" onclick="setIIFTiter('1:80')"  data-titer="1:80">1:80</button>
           <button class="iif-quick" onclick="setIIFTiter('1:160')" data-titer="1:160">1:160</button>
-          <select id="iif-titer" style="flex:1;min-width:80px;" onchange="syncIIFTiterButtons(this.value)">
+          <select id="iif-titer" style="min-width:90px;" onchange="syncIIFTiterButtons(this.value)">
             <option value="">—</option>
             <option>1:10</option><option>1:20</option><option>1:40</option>
             <option>1:80</option><option>1:160</option><option>1:320</option>
@@ -776,38 +780,41 @@
     </div>
   </div>
 
-  <!-- 4. HEMATOLOGY: Eos at Dx + Peak -->
-  <div class="subsection">
+  <!-- HEMATOLOGY: Eos cluster on one line -->
+  <div class="subsection" style="margin-top:10px;padding-top:8px;">
     <div class="subsection-title">Hematology</div>
-    <div class="form-grid cols-3">
-      <div class="field">
-        <label>Eosinophils at Diagnosis <span class="hint">cells/µL</span></label>
-        <input type="number" id="eosinophils" min="0" placeholder="e.g. 800"
-          oninput="checkEosDelta()">
+    <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+      <div class="field" style="flex-shrink:0;">
+        <label>Eosinophils <span class="hint">cells/µL</span></label>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">At Dx</span>
+            <input type="number" id="eosinophils" min="0" placeholder="e.g. 800" style="max-width:90px;" oninput="checkEosDelta()">
+          </div>
+          <span style="font-family:var(--mono);font-size:0.9rem;color:var(--text-muted);padding-bottom:2px;">—</span>
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">Peak</span>
+            <input type="number" id="peak-eosinophils" min="0" placeholder="e.g. 1200" style="max-width:90px;" oninput="checkEosDelta()">
+          </div>
+          <span style="font-family:var(--mono);font-size:0.72rem;color:var(--text-muted);padding-bottom:4px;">on</span>
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">Peak Date</span>
+            <input type="date" id="peak-eos-date">
+          </div>
+        </div>
+        <div id="eos-delta-warning" style="display:none;margin-top:5px;padding:4px 8px;background:#fdecea;border-radius:var(--radius);font-family:var(--mono);font-size:0.65rem;color:var(--error);">
+          ⚠ Peak lower than Dx value — verify
+        </div>
       </div>
-      <div class="field">
-        <label>Peak Eosinophils <span class="hint">cells/µL</span></label>
-        <input type="number" id="peak-eosinophils" min="0" placeholder="e.g. 1200"
-          id="peak-eosinophils" oninput="checkEosDelta()">
-      </div>
-      <div class="field">
-        <label>Date of Peak Eosinophils</label>
-        <input type="date" id="peak-eos-date">
-      </div>
-    </div>
-    <div id="eos-delta-warning" style="display:none;margin-top:6px;padding:6px 10px;background:#fdecea;border-radius:var(--radius);font-family:var(--mono);font-size:0.68rem;color:var(--error);">
-      ⚠ Peak value is lower than value at diagnosis — please verify
     </div>
   </div>
 
-  <!-- 5. CHEMISTRY -->
-  <div class="subsection">
+  <!-- CHEMISTRY -->
+  <div class="subsection" style="margin-top:10px;padding-top:8px;">
     <div class="subsection-title">Chemistry</div>
-    <div class="form-grid cols-3">
-      <div class="field">
-        <label>Albumin <span class="hint">g/dL</span></label>
-        <input type="number" id="albumin" min="0" max="6" step="0.1" placeholder="e.g. 3.5">
-      </div>
+    <div class="field" style="max-width:200px;">
+      <label>Albumin <span class="hint">g/dL</span></label>
+      <input type="number" id="albumin" min="0" max="6" step="0.1" placeholder="e.g. 3.5" style="max-width:100px;">
     </div>
   </div>
 
@@ -1330,6 +1337,10 @@ function prefillFromLookup(data) {
     setRadio('dif-igg',                           l.DIF_IgG);
     setRadio('dif-c3',                            l.DIF_C3);
     setRadio('iif',                               l.IIF_Result);
+    if (l.IIF_Result === 'Positive') {
+      const tr = document.getElementById('iif-titer-row');
+      if (tr) tr.style.display = 'flex';
+    }
     setSelect('iif-titer',                        l.IIF_Titer);
     syncIIFTiterButtons(l.IIF_Titer || '');
     document.getElementById('bp180').value       = l.Anti_BP180_IgG       || '';
@@ -1942,7 +1953,16 @@ function onSevTypeChange(select) {
   });
 }
 
-// ── IIF titer quick-fill buttons ──
+// ── IIF result change — show/hide titer row ──
+function onIIFResultChange(radio) {
+  const titerRow = document.getElementById('iif-titer-row');
+  if (titerRow) titerRow.style.display = (radio.value === 'Positive') ? 'flex' : 'none';
+  if (radio.value !== 'Positive') {
+    const sel = document.getElementById('iif-titer');
+    if (sel) sel.selectedIndex = 0;
+    syncIIFTiterButtons('');
+  }
+}
 function setIIFTiter(value) {
   const sel = document.getElementById('iif-titer');
   if (sel) {
