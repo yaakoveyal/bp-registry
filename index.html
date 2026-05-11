@@ -349,6 +349,16 @@
   }
   .btn-new-patient:hover { color: #fff; border-color: rgba(255,255,255,0.6); }
 
+  /* ── IIF QUICK BUTTONS ── */
+  .iif-quick {
+    font-family: var(--mono); font-size: 0.68rem; font-weight: 600;
+    padding: 5px 10px; border-radius: var(--radius); cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--label); transition: all 0.12s;
+  }
+  .iif-quick:hover { border-color: var(--accent); background: var(--accent-light); }
+  .iif-quick.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent); font-weight: 700; }
+
   /* ── PASSWORD GATE ── */
   .password-gate {
     position: fixed; inset: 0; z-index: 9999;
@@ -648,7 +658,9 @@
     <span class="section-title">Diagnostics & Labs</span>
     <span class="section-note">→ Diagnostics_Labs</span>
   </div>
-  <div class="form-grid">
+
+  <!-- Year of Labs -->
+  <div class="form-grid" style="margin-bottom:4px;">
     <div class="field">
       <label>BP-ID <span class="req">*</span></label>
       <input type="text" class="pid-field" placeholder="BP-0001">
@@ -658,12 +670,34 @@
       <input type="number" id="lab-year" placeholder="e.g. 2019" min="1990" max="2030">
     </div>
   </div>
+
+  <!-- 1. PATHOLOGY: Histology + DIF side by side -->
   <div class="subsection">
-    <div class="subsection-title">Immunofluorescence</div>
+    <div class="subsection-title">Pathology</div>
     <div class="form-grid">
-      <!-- DIF column -->
-      <div style="display:flex; flex-direction:column; gap:10px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:12px;">
-        <div style="font-family:var(--mono); font-size:0.6rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); margin-bottom:2px;">Direct IF (DIF)</div>
+      <!-- Histology -->
+      <div style="display:flex;flex-direction:column;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
+        <div style="font-family:var(--mono);font-size:0.6rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:2px;">Histology</div>
+        <div class="field">
+          <label>Subepidermal Blister</label>
+          <div class="radio-group">
+            <label class="radio-opt"><input type="radio" name="subepidermal" value="Yes"> Yes</label>
+            <label class="radio-opt"><input type="radio" name="subepidermal" value="No"> No</label>
+            <label class="radio-opt"><input type="radio" name="subepidermal" value="ND"> ND</label>
+          </div>
+        </div>
+        <div class="field">
+          <label>Eosinophils in Biopsy</label>
+          <div class="radio-group">
+            <label class="radio-opt"><input type="radio" name="biopsy-eos" value="Yes"> Yes</label>
+            <label class="radio-opt"><input type="radio" name="biopsy-eos" value="No"> No</label>
+            <label class="radio-opt"><input type="radio" name="biopsy-eos" value="ND"> ND</label>
+          </div>
+        </div>
+      </div>
+      <!-- DIF -->
+      <div style="display:flex;flex-direction:column;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
+        <div style="font-family:var(--mono);font-size:0.6rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:2px;">Direct IF (DIF)</div>
         <div class="field">
           <label>IgG</label>
           <div class="radio-group">
@@ -681,34 +715,15 @@
           </div>
         </div>
       </div>
-      <!-- IIF column -->
-      <div style="display:flex; flex-direction:column; gap:10px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:12px;">
-        <div style="font-family:var(--mono); font-size:0.6rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); margin-bottom:2px;">Indirect IF (IIF)</div>
-        <div class="field">
-          <label>Result</label>
-          <div class="radio-group">
-            <label class="radio-opt"><input type="radio" name="iif" value="Positive"> Pos</label>
-            <label class="radio-opt"><input type="radio" name="iif" value="Negative"> Neg</label>
-            <label class="radio-opt"><input type="radio" name="iif" value="ND"> ND</label>
-          </div>
-        </div>
-        <div class="field">
-          <label>Titer</label>
-          <select id="iif-titer">
-            <option value="">—</option>
-            <option>1:10</option><option>1:20</option><option>1:40</option>
-            <option>1:80</option><option>1:160</option><option>1:320</option>
-            <option>1:640</option><option>>1:640</option>
-          </select>
-        </div>
-      </div>
     </div>
   </div>
+
+  <!-- 2. SEROLOGY: BP180, BP230, IgE on one row -->
   <div class="subsection">
     <div class="subsection-title">Serology</div>
     <div class="form-grid cols-3">
       <div class="field">
-        <label>Anti-BP180 IgG <span class="hint">U/mL</span></label>
+        <label>Anti-BP180 IgG <span class="hint">U/mL · Pos &gt;20</span></label>
         <div style="display:flex;gap:8px;align-items:center;">
           <input type="number" id="bp180" min="0" placeholder="e.g. 145" style="flex:1">
           <label class="check-opt" style="white-space:nowrap;font-size:0.75rem;">
@@ -717,7 +732,7 @@
         </div>
       </div>
       <div class="field">
-        <label>Anti-BP230 IgG <span class="hint">U/mL</span></label>
+        <label>Anti-BP230 IgG <span class="hint">U/mL · Pos &gt;20</span></label>
         <div style="display:flex;gap:8px;align-items:center;">
           <input type="number" id="bp230" min="0" placeholder="e.g. 80" style="flex:1">
           <label class="check-opt" style="white-space:nowrap;font-size:0.75rem;">
@@ -731,48 +746,71 @@
       </div>
     </div>
   </div>
+
+  <!-- 3. IIF: Result + Quick-fill titer buttons -->
   <div class="subsection">
-    <div class="subsection-title">CBC / Chemistry</div>
-    <div class="form-grid cols-3">
+    <div class="subsection-title">Indirect IF (IIF)</div>
+    <div class="form-grid">
       <div class="field">
-        <label>Absolute Eosinophils at Diagnosis <span class="hint">cells/µL</span></label>
-        <input type="number" id="eosinophils" min="0" placeholder="e.g. 800">
+        <label>Result</label>
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="iif" value="Positive"> Pos</label>
+          <label class="radio-opt"><input type="radio" name="iif" value="Negative"> Neg</label>
+          <label class="radio-opt"><input type="radio" name="iif" value="ND"> ND</label>
+        </div>
       </div>
       <div class="field">
-        <label>Peak Absolute Eosinophils <span class="hint">cells/µL</span></label>
-        <input type="number" id="peak-eosinophils" min="0" placeholder="e.g. 1200">
+        <label>Titer <span class="hint">quick-select or choose all</span></label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <button class="iif-quick" onclick="setIIFTiter('1:40')"  data-titer="1:40">1:40</button>
+          <button class="iif-quick" onclick="setIIFTiter('1:80')"  data-titer="1:80">1:80</button>
+          <button class="iif-quick" onclick="setIIFTiter('1:160')" data-titer="1:160">1:160</button>
+          <select id="iif-titer" style="flex:1;min-width:80px;" onchange="syncIIFTiterButtons(this.value)">
+            <option value="">—</option>
+            <option>1:10</option><option>1:20</option><option>1:40</option>
+            <option>1:80</option><option>1:160</option><option>1:320</option>
+            <option>1:640</option><option>>1:640</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. HEMATOLOGY: Eos at Dx + Peak -->
+  <div class="subsection">
+    <div class="subsection-title">Hematology</div>
+    <div class="form-grid cols-3">
+      <div class="field">
+        <label>Eosinophils at Diagnosis <span class="hint">cells/µL</span></label>
+        <input type="number" id="eosinophils" min="0" placeholder="e.g. 800"
+          oninput="checkEosDelta()">
+      </div>
+      <div class="field">
+        <label>Peak Eosinophils <span class="hint">cells/µL</span></label>
+        <input type="number" id="peak-eosinophils" min="0" placeholder="e.g. 1200"
+          id="peak-eosinophils" oninput="checkEosDelta()">
       </div>
       <div class="field">
         <label>Date of Peak Eosinophils</label>
         <input type="date" id="peak-eos-date">
       </div>
+    </div>
+    <div id="eos-delta-warning" style="display:none;margin-top:6px;padding:6px 10px;background:#fdecea;border-radius:var(--radius);font-family:var(--mono);font-size:0.68rem;color:var(--error);">
+      ⚠ Peak value is lower than value at diagnosis — please verify
+    </div>
+  </div>
+
+  <!-- 5. CHEMISTRY -->
+  <div class="subsection">
+    <div class="subsection-title">Chemistry</div>
+    <div class="form-grid cols-3">
       <div class="field">
         <label>Albumin <span class="hint">g/dL</span></label>
         <input type="number" id="albumin" min="0" max="6" step="0.1" placeholder="e.g. 3.5">
       </div>
     </div>
   </div>
-  <div class="subsection">
-    <div class="subsection-title">Histology</div>
-    <div class="form-grid cols-3">
-      <div class="field">
-        <label>Subepidermal Blister</label>
-        <div class="radio-group">
-          <label class="radio-opt"><input type="radio" name="subepidermal" value="Yes"> Yes</label>
-          <label class="radio-opt"><input type="radio" name="subepidermal" value="No"> No</label>
-          <label class="radio-opt"><input type="radio" name="subepidermal" value="ND"> ND</label>
-        </div>
-      </div>
-      <div class="field">
-        <label>Eosinophils in Biopsy</label>
-        <div class="radio-group">
-          <label class="radio-opt"><input type="radio" name="biopsy-eos" value="Yes"> Yes</label>
-          <label class="radio-opt"><input type="radio" name="biopsy-eos" value="No"> No</label>
-          <label class="radio-opt"><input type="radio" name="biopsy-eos" value="ND"> ND</label>
-        </div>
-      </div>
-    </div>
-  </div>
+
   <div class="form-nav">
     <div class="nav-left"><button class="btn-prev" onclick="showSection(2)">← Back</button></div>
     <span class="page-indicator">4 / 8</span>
@@ -1293,6 +1331,7 @@ function prefillFromLookup(data) {
     setRadio('dif-c3',                            l.DIF_C3);
     setRadio('iif',                               l.IIF_Result);
     setSelect('iif-titer',                        l.IIF_Titer);
+    syncIIFTiterButtons(l.IIF_Titer || '');
     document.getElementById('bp180').value       = l.Anti_BP180_IgG       || '';
     document.getElementById('bp230').value       = l.Anti_BP230_IgG       || '';
     document.getElementById('total-ige').value   = l.Total_IgE            || '';
@@ -1903,7 +1942,54 @@ function onSevTypeChange(select) {
   });
 }
 
-// Anti-BP ceiling checkbox — disables number input and sets display value
+// ── IIF titer quick-fill buttons ──
+function setIIFTiter(value) {
+  const sel = document.getElementById('iif-titer');
+  if (sel) {
+    for (let i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === value || sel.options[i].text === value) {
+        sel.selectedIndex = i; break;
+      }
+    }
+  }
+  syncIIFTiterButtons(value);
+}
+
+function syncIIFTiterButtons(value) {
+  document.querySelectorAll('.iif-quick').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.titer === value);
+  });
+}
+
+// ── Classic BP histology quick-fill ──
+function classicBPHistology() {
+  ['subepidermal', 'biopsy-eos'].forEach(name => {
+    const el = document.querySelector(`input[name="${name}"][value="Yes"]`);
+    if (el) {
+      el.checked = true;
+      el.closest('.radio-opt')?.classList.add('selected');
+      document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
+        if (r !== el) r.closest('.radio-opt')?.classList.remove('selected');
+      });
+    }
+  });
+}
+
+// ── Eosinophil delta warning ──
+function checkEosDelta() {
+  const atDx  = parseFloat(document.getElementById('eosinophils')?.value);
+  const peak  = parseFloat(document.getElementById('peak-eosinophils')?.value);
+  const warn  = document.getElementById('eos-delta-warning');
+  if (!warn) return;
+  if (!isNaN(atDx) && !isNaN(peak) && peak < atDx) {
+    warn.style.display = 'block';
+    document.getElementById('peak-eosinophils').style.background = '#fdecea';
+  } else {
+    warn.style.display = 'none';
+    if (document.getElementById('peak-eosinophils'))
+      document.getElementById('peak-eosinophils').style.background = '';
+  }
+}
 function onCeilingChange(fieldId, cb) {
   const input = document.getElementById(fieldId);
   if (!input) return;
