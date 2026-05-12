@@ -1404,7 +1404,6 @@ function resetAllFields() {
 // ══════════════════════════════════════════════════════════════
 function setRadio(name, value) {
   if (!value) return;
-  const el = document.querySelector(`input[name="${name}"][value="${value}"]`);
   if (el) { el.checked = true; el.closest('.radio-opt')?.classList.add('selected'); }
 }
 
@@ -2539,85 +2538,102 @@ function collectSection(idx) {
 let lineCount = 0;
 function buildTreatmentLine(n) {
   return `
-  <div class="treatment-row treatment-line-item">
+  <div class="treatment-row treatment-line-item" style="border-left:4px solid var(--accent2);">
     <div class="treatment-row-header">
       <span class="line-badge">LINE ${n}</span>
+      ${n > 1 ? '<button onclick="this.closest(\'.treatment-line-item\').remove()" style="margin-left:auto;font-family:var(--mono);font-size:0.62rem;background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 8px;border-radius:2px;cursor:pointer;">✕ Remove</button>' : ''}
     </div>
-    <div class="form-grid cols-3">
-      <div class="field"><label>Drug Name</label>
-        <select class="tx-drug">
-          <option value="">— Select —</option>
-          <optgroup label="Corticosteroids">
-            <option>Prednisone (oral)</option>
-            <option>Methylprednisolone (IV)</option>
-            <option>Clobetasol propionate (topical)</option>
-          </optgroup>
-          <optgroup label="Immunosuppressants">
-            <option>Doxycycline</option><option>Azathioprine</option>
-            <option>Mycophenolate mofetil</option><option>Methotrexate</option>
-            <option>Dapsone</option><option>Cyclosporine</option><option>IVIG</option>
-          </optgroup>
-          <optgroup label="Biologics">
-            <option>Dupilumab</option><option>Rituximab</option><option>Omalizumab</option>
-          </optgroup>
-          <option>Other</option>
-        </select>
+
+    <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:15px;">
+
+      <!-- COLUMN 1: DRUG & DOSE -->
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="field">
+          <label>Drug Name</label>
+          <select class="tx-drug">
+            <option value="">— Select —</option>
+            <optgroup label="Corticosteroids">
+              <option>Prednisone (oral)</option>
+              <option>Methylprednisolone (IV)</option>
+              <option>Clobetasol propionate (topical)</option>
+            </optgroup>
+            <optgroup label="Immunosuppressants">
+              <option>Doxycycline</option><option>Azathioprine</option>
+              <option>Mycophenolate mofetil</option><option>Methotrexate</option>
+              <option>Dapsone</option><option>Cyclosporine</option><option>IVIG</option>
+            </optgroup>
+            <optgroup label="Biologics">
+              <option>Dupilumab</option><option>Rituximab</option><option>Omalizumab</option>
+            </optgroup>
+            <option>Other</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <div class="field" style="flex:1;">
+            <label>Route</label>
+            <select class="tx-route">
+              <option>Oral</option><option>IV pulse</option>
+              <option>Topical</option><option>Subcutaneous</option>
+            </select>
+          </div>
+          <div class="field" style="flex:1;">
+            <label>Initial Dose <span class="hint">mg/kg·g/d</span></label>
+            <input type="number" class="tx-dose" placeholder="e.g. 0.5" step="0.1" min="0">
+          </div>
+        </div>
+        <div class="field">
+          <label>Concomitant IS</label>
+          <input type="text" class="tx-concomitant" placeholder="e.g. AZA 100mg">
+        </div>
+        <div class="field">
+          <label>Biologic</label>
+          <select class="tx-biologic">
+            <option value="">None</option>
+            <option>Dupilumab</option><option>Rituximab</option>
+            <option>Omalizumab</option><option>Other</option>
+          </select>
+        </div>
       </div>
-      <div class="field"><label>Route</label>
-        <select class="tx-route">
-          <option>Oral</option><option>IV pulse</option>
-          <option>Topical</option><option>Subcutaneous</option>
-        </select>
+
+      <!-- COLUMN 2: STEROID BURDEN -->
+      <div style="background:var(--bg);padding:12px;border:1px solid var(--border);border-radius:var(--radius);display:flex;flex-direction:column;gap:8px;">
+        <div style="font-family:var(--mono);font-size:0.6rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:2px;">Steroid Burden</div>
+        <div style="display:flex;gap:8px;">
+          <div class="field" style="flex:1;"><label>Start</label><input type="date" class="cs-start" oninput="calcCumulativeCS(this)"></div>
+          <div class="field" style="flex:1;"><label>End</label><input type="date" class="cs-end" oninput="calcCumulativeCS(this)"></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <div class="field" style="flex:1;"><label>Max Dose <span class="hint">mg/d</span></label><input type="number" class="cs-maxdose" min="0" oninput="calcCumulativeCS(this)"></div>
+          <div class="field" style="flex:1;"><label>Avg Dose <span class="hint">mg/d</span></label><input type="number" class="cs-avgdose" min="0" oninput="calcCumulativeCS(this)"></div>
+        </div>
+        <div class="score-visual" style="margin-top:auto;background:var(--surface);">
+          <div class="score-label">Cumulative CS (mg)</div>
+          <div class="score-val cs-cumulative" style="font-size:1.2rem;">—</div>
+        </div>
       </div>
-      <div class="field"><label>Initial Dose <span class="hint">mg/kg systemic · g/day topical</span></label>
-        <input type="number" class="tx-dose" placeholder="e.g. 0.5" step="0.1" min="0">
+
+      <!-- COLUMN 3: RESPONSE & OUTCOME -->
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="field">
+          <label>Clinical Response</label>
+          <select class="tx-response">
+            <option value="">— Select —</option>
+            <option>Complete response</option>
+            <option>Partial response</option>
+            <option>No response</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <div class="field" style="flex:1;"><label>Time to Response <span class="hint">wks</span></label><input type="number" class="tx-time-response" min="0"></div>
+          <div class="field" style="flex:1;"><label>Taper <span class="hint">wks</span></label><input type="number" class="tx-taper" min="0"></div>
+          <div class="field" style="flex:1;"><label>&lt;10mg <span class="hint">wks</span></label><input type="number" class="tx-sub10" min="0"></div>
+        </div>
+        <div class="field">
+          <label>Adverse Event / Reason for DC</label>
+          <textarea class="tx-ae" style="min-height:60px;font-size:0.8rem;resize:vertical;"></textarea>
+        </div>
       </div>
-      <div class="field"><label>Start Date</label>
-        <input type="date" class="cs-start" oninput="calcCumulativeCS(this)">
-      </div>
-      <div class="field"><label>End Date</label>
-        <input type="date" class="cs-end" oninput="calcCumulativeCS(this)">
-      </div>
-      <div class="field"><label>Max Pred. Dose <span class="hint">mg/day</span></label>
-        <input type="number" class="cs-maxdose" min="0" oninput="calcCumulativeCS(this)">
-      </div>
-      <div class="field"><label>Avg Daily Dose <span class="hint">mg/day, if tapered</span></label>
-        <input type="number" class="cs-avgdose" min="0" oninput="calcCumulativeCS(this)">
-      </div>
-      <div class="score-visual">
-        <div class="score-label">Cumulative CS (mg)</div>
-        <div class="score-val cs-cumulative">—</div>
-      </div>
-      <div class="field"><label>Concomitant IS</label>
-        <input type="text" class="tx-concomitant" placeholder="e.g. AZA 100mg">
-      </div>
-      <div class="field"><label>Biologic</label>
-        <select class="tx-biologic">
-          <option value="">None</option>
-          <option>Dupilumab</option><option>Rituximab</option>
-          <option>Omalizumab</option><option>Other</option>
-        </select>
-      </div>
-      <div class="field"><label>Clinical Response</label>
-        <select class="tx-response">
-          <option value="">—</option>
-          <option>Complete response</option>
-          <option>Partial response</option>
-          <option>No response</option>
-        </select>
-      </div>
-      <div class="field"><label>Time to Response <span class="hint">weeks</span></label>
-        <input type="number" class="tx-time-response" min="0">
-      </div>
-      <div class="field"><label>Taper Duration <span class="hint">weeks</span></label>
-        <input type="number" class="tx-taper" min="0">
-      </div>
-      <div class="field"><label>Time to &lt;10mg Pred. <span class="hint">weeks</span></label>
-        <input type="number" class="tx-sub10" min="0">
-      </div>
-      <div class="field span-3"><label>Adverse Event / Reason for Discontinuation</label>
-        <input type="text" class="tx-ae">
-      </div>
+
     </div>
   </div>`;
 }
