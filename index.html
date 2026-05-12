@@ -1734,14 +1734,21 @@ function hasSectionData(idx) {
 // ══════════════════════════════════════════════════════════════
 //  SEND ONE SECTION (shared by manual save + auto-save)
 // ══════════════════════════════════════════════════════════════
-async function sendSection(idx) {
+async function sendSection(idx, isRetry = false) {
   const payload    = collectSection(idx);
   const rowsToSend = payload.rows || [payload.row];
   for (const row of rowsToSend) {
     const params = new URLSearchParams({ token: SECRET_TOKEN, sheet: payload.sheet, row: JSON.stringify(row) });
     const resp   = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
     const json   = await resp.json();
-    if (json.status === 'error') throw new Error(json.message);
+    if (json.status === 'error') {
+      if (!isRetry && json.message && json.message.includes('Server busy')) {
+        console.warn(`Section ${idx} busy — retrying in 1s…`);
+        await new Promise(r => setTimeout(r, 1000));
+        return await sendSection(idx, true);
+      }
+      throw new Error(json.message);
+    }
   }
 }
 
