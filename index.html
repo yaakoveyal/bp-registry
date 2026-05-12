@@ -1071,8 +1071,10 @@
     <span class="section-title">Outcomes</span>
     <span class="section-note">→ Outcomes</span>
   </div>
-  <div class="form-grid">
-    <div class="field">
+
+  <!-- Follow-up: inline date + calculated -->
+  <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:4px;">
+    <div class="field" style="min-width:160px;">
       <label>BP-ID <span class="req">*</span></label>
       <input type="text" class="pid-field" placeholder="BP-0001">
     </div>
@@ -1080,24 +1082,28 @@
       <label>Last Follow-up Date</label>
       <input type="date" id="followup-date" oninput="calcFollowupMonths()">
     </div>
-    <div class="score-visual" style="display:flex;flex-direction:column;justify-content:center;">
-      <div class="score-label">Follow-up (months)</div>
-      <div class="score-val" id="followup-months-display" style="font-size:1rem;">—</div>
+    <div style="display:flex;flex-direction:column;gap:2px;padding-bottom:2px;">
+      <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">Follow-up</span>
+      <span style="font-family:var(--mono);font-size:1rem;font-weight:600;color:var(--accent);" id="followup-months-display">—</span>
+      <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">months</span>
       <input type="hidden" id="followup-months">
     </div>
   </div>
+
+  <!-- REMISSION -->
   <div class="subsection">
     <div class="subsection-title">Remission</div>
-    <div class="form-grid cols-3">
+    <!-- Row 1: four Yes/No fields -->
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;">
       <div class="field">
-        <label>Complete Remission Off Therapy</label>
+        <label>CR Off Therapy</label>
         <div class="radio-group">
           <label class="radio-opt"><input type="radio" name="crot" value="Yes"> Yes</label>
           <label class="radio-opt"><input type="radio" name="crot" value="No"> No</label>
         </div>
       </div>
       <div class="field">
-        <label>Complete Remission On Minimal Therapy</label>
+        <label>CR On Minimal Therapy</label>
         <div class="radio-group">
           <label class="radio-opt"><input type="radio" name="crmt" value="Yes"> Yes</label>
           <label class="radio-opt"><input type="radio" name="crmt" value="No"> No</label>
@@ -1117,20 +1123,26 @@
           <label class="radio-opt"><input type="radio" name="nr" value="No"> No</label>
         </div>
       </div>
+    </div>
+    <!-- Row 2: date + inline calc -->
+    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;">
       <div class="field">
         <label>Date of First Remission</label>
         <input type="date" id="date-remission" oninput="calcRemissionWeeks()">
       </div>
-      <div class="score-visual" style="display:flex;flex-direction:column;justify-content:center;">
-        <div class="score-label">Weeks to Remission</div>
-        <div class="score-val" id="time-remission-display" style="font-size:1rem;">—</div>
+      <div style="display:flex;flex-direction:column;gap:2px;padding-bottom:2px;">
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">Time to Remission</span>
+        <span style="font-family:var(--mono);font-size:1rem;font-weight:600;color:var(--accent);" id="time-remission-display">—</span>
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">weeks</span>
         <input type="hidden" id="time-remission">
       </div>
     </div>
   </div>
+
+  <!-- RELAPSE -->
   <div class="subsection">
     <div class="subsection-title">Relapse</div>
-    <div class="form-grid cols-3">
+    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;">
       <div class="field">
         <label>Relapse</label>
         <div class="radio-group">
@@ -1142,16 +1154,18 @@
         <label>Date of First Relapse</label>
         <input type="date" id="date-relapse" oninput="calcRelapseWeeks()">
       </div>
-      <div class="score-visual" style="display:flex;flex-direction:column;justify-content:center;">
-        <div class="score-label">Weeks to Relapse</div>
-        <div class="score-val" id="time-relapse-display" style="font-size:1rem;">—</div>
+      <div style="display:flex;flex-direction:column;gap:2px;padding-bottom:2px;">
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">Time to Relapse</span>
+        <span style="font-family:var(--mono);font-size:1rem;font-weight:600;color:var(--accent);" id="time-relapse-display">—</span>
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">weeks</span>
         <input type="hidden" id="time-relapse">
       </div>
-      <div class="field">
-        <label>Number of Relapses</label>
+      <span style="font-family:var(--mono);color:var(--border);margin-bottom:20px;">|</span>
+      <div class="field" style="max-width:120px;">
+        <label>N Relapses</label>
         <input type="number" id="n-relapses" min="0" placeholder="e.g. 2">
       </div>
-      <div class="field">
+      <div class="field" style="max-width:180px;">
         <label>Relapse Context</label>
         <select id="relapse-context">
           <option value="">—</option>
@@ -1162,25 +1176,28 @@
       </div>
     </div>
   </div>
+
+  <!-- HOSPITALIZATIONS & MORTALITY -->
   <div class="subsection">
-    <div class="subsection-title">Hospitalizations & Mortality</div>
-    <div class="form-grid cols-3">
-      <div class="field">
-        <label>Number of Hospitalizations</label>
+    <div class="subsection-title">Hospitalizations &amp; Mortality</div>
+    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;">
+      <div class="field" style="max-width:140px;">
+        <label>N Hospitalizations</label>
         <input type="number" id="n-hosp" min="0" placeholder="e.g. 1">
       </div>
       <div class="field">
-        <label>Sepsis During Hospitalization</label>
+        <label>Sepsis During Hosp.</label>
         <div class="radio-group">
           <label class="radio-opt"><input type="radio" name="sepsis" value="Yes"> Yes</label>
           <label class="radio-opt"><input type="radio" name="sepsis" value="No"> No</label>
         </div>
       </div>
-      <div class="field">
-        <label>Months to Death <span class="hint">from diagnosis, if applicable</span></label>
+      <span style="font-family:var(--mono);color:var(--border);margin-bottom:20px;">|</span>
+      <div class="field" style="max-width:140px;">
+        <label>Months to Death <span class="hint">if applicable</span></label>
         <input type="number" id="months-to-death" min="0" placeholder="e.g. 18">
       </div>
-      <div class="field span-3">
+      <div class="field" style="min-width:200px;">
         <label>Cause of Death</label>
         <select id="cause-death">
           <option value="">—</option>
@@ -1195,11 +1212,11 @@
       </div>
     </div>
   </div>
+
   <div class="form-nav">
     <div class="nav-left"><button class="btn-prev" onclick="showSection(6)">← Back</button></div>
     <span class="page-indicator">8 / 8</span>
-    <div class="nav-right">
-    </div>
+    <div class="nav-right"></div>
   </div>
 </div>
 
