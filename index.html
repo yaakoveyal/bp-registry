@@ -665,6 +665,7 @@
         <label class="check-opt"><input type="checkbox" name="dist" value="Face/Neck"> Face/Neck</label>
         <label class="check-opt"><input type="checkbox" name="dist" value="Oral mucosa"> Oral mucosa</label>
         <label class="check-opt"><input type="checkbox" name="dist" value="Genital mucosa"> Genital mucosa</label>
+        <label class="check-opt"><input type="checkbox" name="dist" value="Ocular"> Ocular</label>
         <label class="check-opt"><input type="checkbox" name="dist" value="Generalized"> Generalized</label>
       </div>
     </div>
@@ -991,6 +992,13 @@
         <div class="radio-group">
           <label class="radio-opt"><input type="radio" name="ckd" value="Yes"> Yes</label>
           <label class="radio-opt"><input type="radio" name="ckd" value="No"> No</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Smoker</label>
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="smoker" value="Yes"> Yes</label>
+          <label class="radio-opt"><input type="radio" name="smoker" value="No"> No</label>
         </div>
       </div>
     </div>
@@ -1446,6 +1454,7 @@ function prefillFromLookup(data) {
     setRadio('malig',           c.Active_Malignancy);
     setRadio('autoimm',         c.Autoimmune_Disease);
     setRadio('ckd',            c.CKD);
+    setRadio('smoker',         c.Smoker);
     onNeuroChange();
   }
   if (data.drug_triggers) {
@@ -2408,7 +2417,8 @@ function collectSection(idx) {
     case 4: return { sheet: SHEET_NAMES[4], row: [
       pid, getRadio('antipsych'), val('neuro-year'),
       getCheckboxes('neuro'), getRadio('dm'), getRadio('htn'),
-      getRadio('ihd'), getRadio('malig'), getRadio('autoimm'), getRadio('ckd'), collector, ts
+      getRadio('ihd'), getRadio('malig'), getRadio('autoimm'), getRadio('ckd'),
+      getRadio('smoker'), collector, ts
     ]};
     case 5: {
       const rows = [];
