@@ -1494,10 +1494,18 @@ function prefillFromLookup(data) {
 // ══════════════════════════════════════════════════════════════
 const lookupCache = {}; // sessionStorage-backed cache keyed by BP-ID
 
-// Warm up Apps Script on page load (fires silently, result ignored)
-(function warmUp() {
-  const params = new URLSearchParams({ token: SECRET_TOKEN });
-  fetch(APPS_SCRIPT_URL + '?' + params.toString()).catch(() => {});
+// ══════════════════════════════════════════════════════════════
+//  WARM-UP + HEARTBEAT
+//  Initial ping on load, then every 4 min while tab is visible
+// ══════════════════════════════════════════════════════════════
+(function startHeartbeat() {
+  const ping = () => {
+    if (document.visibilityState !== 'hidden') {
+      fetch(APPS_SCRIPT_URL + '?token=' + SECRET_TOKEN).catch(() => {});
+    }
+  };
+  ping(); // immediate warm-up on load
+  setInterval(ping, 240000); // then every 4 minutes
 })();
 
 async function lookupPID(pid) {
