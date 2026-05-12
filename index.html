@@ -778,59 +778,68 @@
     </div>
   </div>
 
-  <!-- SEROLOGY: joined input groups with affixes -->
+  <!-- ROW 1: BP180 | BP230 | IgE | IIF Result + Titer -->
   <div class="subsection" style="margin-top:10px;padding-top:8px;">
-    <div class="subsection-title">Serology</div>
-    <div class="form-grid cols-3">
-      <div class="field">
-        <label>Anti-BP180 IgG <span class="hint">Pos &gt;20</span></label>
-        <div class="input-group">
-          <input type="number" id="bp180" min="0" placeholder="e.g. 145" tabindex="2">
+    <div class="subsection-title">Serology &amp; IIF</div>
+    <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;">
+
+      <!-- BP180 -->
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">BP180 IgG <span style="color:var(--text-muted);font-weight:400;">Pos&gt;20</span></span>
+        <div class="input-group" style="height:30px;">
+          <input type="number" id="bp180" min="0" placeholder="145" tabindex="2">
           <label class="group-addon" id="bp180-addon" title=">200 U/mL ceiling">
             <input type="checkbox" id="bp180-ceiling" onchange="onCeilingChange('bp180',this)">&gt;200
           </label>
         </div>
-        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">U/mL</span>
+        <span style="font-family:var(--mono);font-size:0.55rem;color:var(--text-muted);">U/mL</span>
       </div>
-      <div class="field">
-        <label>Anti-BP230 IgG <span class="hint">Pos &gt;20</span></label>
-        <div class="input-group">
-          <input type="number" id="bp230" min="0" placeholder="e.g. 80" tabindex="3">
+
+      <span style="font-family:var(--mono);color:var(--border);margin-bottom:20px;">|</span>
+
+      <!-- BP230 -->
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">BP230 IgG <span style="font-weight:400;">Pos&gt;20</span></span>
+        <div class="input-group" style="height:30px;">
+          <input type="number" id="bp230" min="0" placeholder="80" tabindex="3">
           <label class="group-addon" id="bp230-addon" title=">150 U/mL ceiling">
             <input type="checkbox" id="bp230-ceiling" onchange="onCeilingChange('bp230',this)">&gt;150
           </label>
         </div>
-        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">U/mL</span>
+        <span style="font-family:var(--mono);font-size:0.55rem;color:var(--text-muted);">U/mL</span>
       </div>
-      <div class="field">
-        <label>Total IgE</label>
+
+      <span style="font-family:var(--mono);color:var(--border);margin-bottom:20px;">|</span>
+
+      <!-- IgE -->
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">Total IgE</span>
         <div class="input-affix">
-          <input type="number" id="total-ige" min="0" placeholder="e.g. 450" style="max-width:110px;" tabindex="4">
+          <input type="number" id="total-ige" min="0" placeholder="450" style="max-width:90px;" tabindex="4">
           <span class="affix-unit">IU/mL</span>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- IIF: Result + titer conditional on Positive -->
-  <div class="subsection" style="margin-top:10px;padding-top:8px;">
-    <div class="subsection-title">Indirect IF (IIF)</div>
-    <div style="display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;">
-      <div class="field" style="flex-shrink:0;">
-        <label>Result</label>
-        <div class="radio-group">
+      <span style="font-family:var(--mono);color:var(--border);margin-bottom:20px;">|</span>
+
+      <!-- IIF Result -->
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">IIF Result</span>
+        <div class="radio-group" style="gap:4px;">
           <label class="radio-opt"><input type="radio" name="iif" value="Positive" onchange="onIIFResultChange(this)"> Pos</label>
           <label class="radio-opt"><input type="radio" name="iif" value="Negative" onchange="onIIFResultChange(this)"> Neg</label>
           <label class="radio-opt"><input type="radio" name="iif" value="ND"       onchange="onIIFResultChange(this)"> ND</label>
         </div>
       </div>
-      <div class="field" id="iif-titer-row" style="display:none;flex:1;">
-        <label>Titer</label>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+
+      <!-- IIF Titer — conditional on Positive -->
+      <div id="iif-titer-row" style="display:none;flex-direction:column;gap:3px;">
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">Titer</span>
+        <div style="display:flex;gap:5px;align-items:center;">
           <button class="iif-quick" onclick="setIIFTiter('1:40')"  data-titer="1:40">1:40</button>
           <button class="iif-quick" onclick="setIIFTiter('1:80')"  data-titer="1:80">1:80</button>
           <button class="iif-quick" onclick="setIIFTiter('1:160')" data-titer="1:160">1:160</button>
-          <select id="iif-titer" style="min-width:90px;" onchange="syncIIFTiterButtons(this.value)">
+          <select id="iif-titer" style="min-width:80px;" onchange="syncIIFTiterButtons(this.value)">
             <option value="">—</option>
             <option>1:10</option><option>1:20</option><option>1:40</option>
             <option>1:80</option><option>1:160</option><option>1:320</option>
@@ -838,51 +847,57 @@
           </select>
         </div>
       </div>
+
     </div>
   </div>
 
-  <!-- HEMATOLOGY: Eos cluster — baseline aligned -->
+  <!-- ROW 2: Eos at Dx | Eos Peak | Peak Date | Albumin -->
   <div class="subsection" style="margin-top:10px;padding-top:8px;">
-    <div class="subsection-title">Hematology</div>
-    <div style="display:flex;align-items:flex-end;gap:0;flex-wrap:wrap;">
-      <!-- At Dx -->
-      <div style="display:flex;flex-direction:column;gap:3px;margin-right:6px;">
-        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);line-height:1;">Eos at Dx</span>
+    <div class="subsection-title">Hematology &amp; Chemistry</div>
+    <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;">
+
+      <!-- Eos at Dx -->
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">Eos at Dx</span>
         <div class="input-affix">
           <input type="number" id="eosinophils" min="0" placeholder="800" style="max-width:85px;" oninput="checkEosDelta()" tabindex="5">
           <span class="affix-unit">c/µL</span>
         </div>
       </div>
-      <span style="font-family:var(--mono);font-size:0.85rem;color:var(--text-muted);margin-bottom:6px;margin-right:6px;">—</span>
-      <!-- Peak -->
-      <div style="display:flex;flex-direction:column;gap:3px;margin-right:6px;">
-        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);line-height:1;">Eos Peak</span>
+
+      <span style="font-family:var(--mono);font-size:0.85rem;color:var(--text-muted);margin-bottom:6px;">—</span>
+
+      <!-- Eos Peak -->
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">Eos Peak</span>
         <div class="input-affix">
           <input type="number" id="peak-eosinophils" min="0" placeholder="1200" style="max-width:85px;" oninput="checkEosDelta()" tabindex="6">
           <span class="affix-unit">c/µL</span>
         </div>
       </div>
-      <span style="font-family:var(--mono);font-size:0.72rem;color:var(--text-muted);margin-bottom:7px;margin-right:6px;">on</span>
+
+      <span style="font-family:var(--mono);font-size:0.72rem;color:var(--text-muted);margin-bottom:7px;">on</span>
+
       <!-- Peak Date -->
       <div style="display:flex;flex-direction:column;gap:3px;">
-        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);line-height:1;">Peak Date</span>
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">Peak Date</span>
         <input type="date" id="peak-eos-date">
       </div>
+
+      <span style="font-family:var(--mono);color:var(--border);margin-bottom:20px;">|</span>
+
+      <!-- Albumin -->
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">Albumin</span>
+        <div class="input-affix">
+          <input type="number" id="albumin" min="0" max="6" step="0.1" placeholder="3.5" tabindex="7">
+          <span class="affix-unit">g/dL</span>
+        </div>
+      </div>
+
     </div>
     <div id="eos-delta-warning" style="display:none;margin-top:5px;padding:4px 8px;background:#fdecea;border-radius:var(--radius);font-family:var(--mono);font-size:0.65rem;color:var(--error);">
       ⚠ Peak lower than Dx value — verify
-    </div>
-  </div>
-
-  <!-- CHEMISTRY -->
-  <div class="subsection" style="margin-top:10px;padding-top:8px;">
-    <div class="subsection-title">Chemistry</div>
-    <div style="display:flex;flex-direction:column;gap:4px;max-width:160px;">
-      <label style="font-family:var(--mono);font-size:0.66rem;font-weight:600;letter-spacing:0.09em;text-transform:uppercase;color:var(--label);">Albumin</label>
-      <div class="input-affix">
-        <input type="number" id="albumin" min="0" max="6" step="0.1" placeholder="e.g. 3.5" tabindex="7">
-        <span class="affix-unit">g/dL</span>
-      </div>
     </div>
   </div>
 
