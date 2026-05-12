@@ -1872,54 +1872,66 @@ function buildSeverityCard(n) {
       <span class="line-badge">ASSESSMENT ${n}</span>
       ${n > 1 ? '<button onclick="removeSeverityCard(this)" style="margin-left:auto;font-family:var(--mono);font-size:0.62rem;background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 8px;border-radius:2px;cursor:pointer;">✕ Remove</button>' : ''}
     </div>
-    <div class="form-grid cols-3">
-      <div class="field">
-        <label>Assessment Type <span class="req">*</span></label>
-        <select class="sev-type" onchange="onSevTypeChange(this)">
-          <option>Baseline (Diagnosis)</option>
-          <option>Follow-up</option>
-          <option>Remission</option>
-          <option>Relapse</option>
-        </select>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 180px;gap:20px;">
+
+      <!-- INPUT FIELDS (left + center) -->
+      <div style="grid-column:span 2;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="field">
+          <label>Assessment Type <span class="req">*</span></label>
+          <select class="sev-type" onchange="onSevTypeChange(this)">
+            <option>Baseline (Diagnosis)</option>
+            <option>Follow-up</option>
+            <option>Remission</option>
+            <option>Relapse</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Assessment Date <span class="req">*</span></label>
+          <input type="date" class="sev-date" oninput="calcSeverityMonths(this)">
+        </div>
+        <div class="field sev-symptoms-row" style="display:none;">
+          <label>Date of First Symptoms <span class="hint">Baseline only</span></label>
+          <input type="date" class="sev-symptoms-date" onchange="calcSymptomsToDxFromSeverity(this)">
+        </div>
+        <div class="field">
+          <label>Pruritus NRS <span class="hint">0–10</span></label>
+          <input type="number" class="sev-nrs" min="0" max="10" placeholder="0–10">
+        </div>
+        <div class="field">
+          <label>BPDAI Skin <span class="hint">0–120</span></label>
+          <input type="number" class="sev-skin" min="0" max="120" oninput="calcSeverityTotal(this)">
+        </div>
+        <div class="field">
+          <label>BPDAI Mucosa <span class="hint">0–120</span></label>
+          <input type="number" class="sev-mucosa" min="0" max="120" oninput="calcSeverityTotal(this)">
+        </div>
+        <div class="field">
+          <label>DLQI <span class="hint">0–30</span></label>
+          <input type="number" class="sev-dlqi" min="0" max="30" placeholder="0–30">
+        </div>
       </div>
-      <div class="field">
-        <label>Assessment Date <span class="req">*</span></label>
-        <input type="date" class="sev-date" oninput="calcSeverityMonths(this)">
+
+      <!-- CALCULATED METRICS (right panel) -->
+      <div style="display:flex;flex-direction:column;gap:10px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);">
+        <div style="border-bottom:1px solid var(--border);padding-bottom:5px;margin-bottom:2px;">
+          <span style="font-family:var(--mono);font-size:0.6rem;font-weight:600;color:var(--accent);letter-spacing:0.1em;text-transform:uppercase;">Calculated</span>
+        </div>
+        <div class="score-visual" style="border:none;padding:0;">
+          <div class="score-label">Months Since Dx</div>
+          <div class="score-val sev-months-display" style="font-size:1.1rem;">—</div>
+          <input type="hidden" class="sev-months">
+        </div>
+        <div class="score-visual sev-symptoms-row" style="display:none;border:none;padding:0;">
+          <div class="score-label">Symptom→Dx (days)</div>
+          <div class="score-val sev-symptoms-to-dx" style="font-size:1.1rem;">—</div>
+        </div>
+        <div class="score-visual" style="border:none;padding:0;border-top:1px dashed var(--border);padding-top:8px;margin-top:2px;">
+          <div class="score-label">BPDAI Total</div>
+          <div class="score-val sev-total" style="font-size:1.4rem;">—</div>
+        </div>
       </div>
-      <div class="score-visual" style="display:flex;flex-direction:column;justify-content:center;">
-        <div class="score-label">Months Since Dx</div>
-        <div class="score-val sev-months-display" style="font-size:1rem;">—</div>
-        <input type="hidden" class="sev-months">
-      </div>
-      <!-- Symptom onset — only shown for Baseline assessment -->
-      <div class="field sev-symptoms-row" style="display:none; flex-direction:column; gap:4px;">
-        <label>Date of First Symptoms <span class="hint">Baseline only</span></label>
-        <input type="date" class="sev-symptoms-date" onchange="calcSymptomsToDxFromSeverity(this)">
-      </div>
-      <div class="score-visual sev-symptoms-row" style="display:none; flex-direction:column; justify-content:center;">
-        <div class="score-label">Symptoms→Dx (days)</div>
-        <div class="score-val sev-symptoms-to-dx" style="font-size:1rem;">—</div>
-      </div>
-      <div class="field">
-        <label>Pruritus NRS <span class="hint">0–10</span></label>
-        <input type="number" class="sev-nrs" min="0" max="10" placeholder="0–10">
-      </div>
-      <div class="field">
-        <label>BPDAI Skin <span class="hint">0–120</span></label>
-        <input type="number" class="sev-skin" min="0" max="120" oninput="calcSeverityTotal(this)">
-      </div>
-      <div class="field">
-        <label>BPDAI Mucosa <span class="hint">0–120</span></label>
-        <input type="number" class="sev-mucosa" min="0" max="120" oninput="calcSeverityTotal(this)">
-      </div>
-      <div class="score-visual">
-        <div class="score-label">BPDAI Total</div>
-        <div class="score-val sev-total">—</div>
-      </div>
-      <div class="field">
-        <label>DLQI <span class="hint">0–30</span></label>
-        <input type="number" class="sev-dlqi" min="0" max="30" placeholder="0–30">
-      </div>
+
     </div>
   </div>`;
 }
@@ -2057,6 +2069,7 @@ function onSevTypeChange(select) {
   const card = select.closest('.severity-card');
   const isBaseline = select.value === 'Baseline (Diagnosis)';
   card.querySelectorAll('.sev-symptoms-row').forEach(el => {
+    // field divs use flex, score-visual divs use flex too
     el.style.display = isBaseline ? 'flex' : 'none';
   });
 }
