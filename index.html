@@ -911,13 +911,15 @@
   </div>
 </div>
 
+<!-- ══════════ 5. COMORBIDITIES ══════════ -->
 <div class="section" id="sec-4">
   <div class="section-header">
     <span class="section-num">05</span>
     <span class="section-title">Comorbidities</span>
     <span class="section-note">→ Comorbidities</span>
   </div>
-  <div class="form-grid">
+
+  <div class="form-grid" style="margin-bottom:16px;">
     <div class="field">
       <label>BP-ID <span class="req">*</span></label>
       <input type="text" class="pid-field" placeholder="BP-0001">
@@ -930,15 +932,13 @@
       </div>
     </div>
   </div>
-  <div class="subsection">
-    <div class="subsection-title">Neurological</div>
-    <div class="form-grid">
-      <div class="field conditional-field" id="cond-neuro-year">
-        <label>Year of Neurologic Diagnosis <span class="hint">if applicable</span></label>
-        <input type="number" id="neuro-year" min="1950" max="2030" placeholder="e.g. 2015">
-      </div>
-      <div class="field">
-        <label>Neurological Diagnoses <span class="hint">check all that apply</span></label>
+
+  <!-- NEUROLOGICAL BLOCK -->
+  <div class="subsection" style="background:var(--surface);border:1px solid var(--border);padding:12px;border-radius:var(--radius);margin-bottom:16px;">
+    <div class="subsection-title" style="margin-bottom:10px;">Neurological</div>
+    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+      <div class="field" style="flex:2;min-width:280px;">
+        <label>Diagnoses <span class="hint">check all that apply</span></label>
         <div class="check-group">
           <label class="check-opt"><input type="checkbox" name="neuro" value="Dementia" onchange="onNeuroChange()"> Dementia</label>
           <label class="check-opt"><input type="checkbox" name="neuro" value="Parkinsons" onchange="onNeuroChange()"> Parkinson's</label>
@@ -947,11 +947,17 @@
           <label class="check-opt"><input type="checkbox" name="neuro" value="MS" onchange="onNeuroChange()"> MS</label>
         </div>
       </div>
+      <div class="field" id="cond-neuro-year" style="flex:1;min-width:120px;visibility:hidden;">
+        <label>Year of Dx</label>
+        <input type="number" id="neuro-year" min="1950" max="2030" placeholder="e.g. 2015">
+      </div>
     </div>
   </div>
+
+  <!-- GENERAL MEDICAL PROFILE -->
   <div class="subsection">
-    <div class="subsection-title">Other Comorbidities</div>
-    <div class="form-grid cols-3">
+    <div class="subsection-title">General Medical Profile</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
       <div class="field">
         <label>Diabetes</label>
         <div class="radio-group">
@@ -1003,6 +1009,7 @@
       </div>
     </div>
   </div>
+
   <div class="form-nav">
     <div class="nav-left"><button class="btn-prev" onclick="showSection(3)">← Back</button></div>
     <span class="page-indicator">5 / 8</span>
@@ -1697,13 +1704,15 @@ function onDrugTriggerChange() {
 
 function onNeuroChange() {
   const anyChecked = document.querySelectorAll('input[name="neuro"]:checked').length > 0;
-  setConditional('cond-neuro-year', anyChecked);
+  const el = document.getElementById('cond-neuro-year');
+  if (el) el.style.visibility = anyChecked ? 'visible' : 'hidden';
 }
 
 // Init conditional state on page load
 function initConditionals() {
-  // Neuro year starts hidden
-  setConditional('cond-neuro-year', false);
+  // Neuro year starts hidden (uses visibility to preserve layout space)
+  const neuroYear = document.getElementById('cond-neuro-year');
+  if (neuroYear) neuroYear.style.visibility = 'hidden';
   // Drug cards handle their own conditional logic internally
 }
 
