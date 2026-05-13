@@ -150,6 +150,21 @@
   .radio-opt input, .check-opt input { accent-color: var(--accent); width: 13px; height: 13px; }
   .radio-opt.selected, .check-opt.selected { border-color: var(--accent); background: var(--accent-light); font-weight: 500; }
 
+  /* ── COMORBIDITY CHIPS ── */
+  .comorbidity-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .comorbidity-chip {
+    font-family: var(--mono); font-size: 0.72rem; font-weight: 600;
+    letter-spacing: 0.07em; text-transform: uppercase;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text-muted); padding: 6px 13px; border-radius: var(--radius);
+    cursor: pointer; user-select: none; transition: all 0.12s;
+  }
+  .comorbidity-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .comorbidity-chip.active {
+    border-color: var(--accent); background: var(--accent);
+    color: #fff; font-weight: 700;
+  }
+
   /* ── SUBSECTION ── */
   .subsection { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--border); }
   .subsection-title { font-family: var(--mono); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
@@ -548,12 +563,11 @@
 <div class="section-nav">
   <div class="nav-tab active" onclick="showSection(0)">1 · Baseline <span class="tick">✓</span><span class="tab-dot"></span></div>
   <div class="nav-tab" onclick="showSection(1)">2 · Phenotype <span class="tick">✓</span><span class="tab-dot"></span></div>
-  <div class="nav-tab" onclick="showSection(2)">3 · Severity <span class="tick">✓</span><span class="tab-dot"></span></div>
-  <div class="nav-tab" onclick="showSection(3)">4 · Labs <span class="tick">✓</span><span class="tab-dot"></span></div>
-  <div class="nav-tab" onclick="showSection(4)">5 · Comorbidities <span class="tick">✓</span><span class="tab-dot"></span></div>
-  <div class="nav-tab" onclick="showSection(5)">6 · Drug Triggers <span class="tick">✓</span><span class="tab-dot"></span></div>
-  <div class="nav-tab" onclick="showSection(6)">7 · Treatment <span class="tick">✓</span><span class="tab-dot"></span></div>
-  <div class="nav-tab" onclick="showSection(7)">8 · Outcomes <span class="tick">✓</span><span class="tab-dot"></span></div>
+  <div class="nav-tab" onclick="showSection(2)">3 · Labs <span class="tick">✓</span><span class="tab-dot"></span></div>
+  <div class="nav-tab" onclick="showSection(3)">4 · Drug Triggers <span class="tick">✓</span><span class="tab-dot"></span></div>
+  <div class="nav-tab" onclick="showSection(4)">5 · Severity <span class="tick">✓</span><span class="tab-dot"></span></div>
+  <div class="nav-tab" onclick="showSection(5)">6 · Treatment <span class="tick">✓</span><span class="tab-dot"></span></div>
+  <div class="nav-tab" onclick="showSection(6)">7 · Outcomes <span class="tick">✓</span><span class="tab-dot"></span></div>
 </div>
 
 <div class="main">
@@ -579,7 +593,7 @@
       </div>
     </div>
     <div class="field">
-      <label>Age at Diagnosis <span class="req">*</span> <span class="hint">years — do not enter DOB</span></label>
+      <label>Age at Diagnosis <span class="req">*</span> <span class="hint">years</span></label>
       <input type="number" id="age-dx" placeholder="e.g. 74" min="0" max="120">
     </div>
     <div class="field">
@@ -608,7 +622,7 @@
       </select>
     </div>
     <div class="field">
-      <label>Frailty Score <span class="hint">Clinical Frailty Scale 1–9</span></label>
+      <label>Frailty Score <span class="hint">CFS 1–9</span></label>
       <select id="frailty">
         <option value="">— Select —</option>
         <option value="1">1 — Very fit</option>
@@ -622,10 +636,86 @@
         <option value="9">9 — Terminally ill</option>
       </select>
     </div>
+    <div class="field">
+      <label>Date of Death <span class="hint">if applicable</span></label>
+      <input type="date" id="date-of-death">
+    </div>
+    <div class="field">
+      <label>Cause of Death</label>
+      <select id="cause-death-baseline">
+        <option value="">—</option>
+        <option>Disease-related (BP)</option>
+        <option>Treatment complication</option>
+        <option>Infection / Sepsis</option>
+        <option>Cardiovascular</option>
+        <option>Malignancy</option>
+        <option>Other</option>
+        <option>Unknown</option>
+      </select>
+    </div>
   </div>
+
+  <!-- COMORBIDITIES -->
+  <div class="subsection" style="background:var(--surface);border:1px solid var(--border);padding:14px;border-radius:var(--radius);margin-top:18px;">
+    <div class="subsection-title" style="margin-bottom:12px;">Comorbidities <span style="font-family:var(--sans);font-size:0.65rem;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);margin-left:6px;">press to mark as present — unpressed = No</span></div>
+
+    <!-- Antipsychotic -->
+    <div style="margin-bottom:14px;padding-bottom:12px;border-bottom:1px dashed var(--border);">
+      <div class="field" style="margin:0;">
+        <label>Antipsychotic Treatment</label>
+        <div class="radio-group" style="margin-top:4px;">
+          <label class="radio-opt"><input type="radio" name="antipsych" value="Yes"> Yes</label>
+          <label class="radio-opt"><input type="radio" name="antipsych" value="No"> No</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Neurological block -->
+    <div style="margin-bottom:14px;padding-bottom:12px;border-bottom:1px dashed var(--border);">
+      <div style="font-family:var(--mono);font-size:0.62rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Neurological</div>
+      <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+        <div class="comorbidity-chips" style="flex:1;">
+          <button type="button" class="comorbidity-chip" data-name="neuro" data-value="Dementia" onclick="toggleComorbChip(this)">Dementia</button>
+          <button type="button" class="comorbidity-chip" data-name="neuro" data-value="Parkinsons" onclick="toggleComorbChip(this)">Parkinson's</button>
+          <button type="button" class="comorbidity-chip" data-name="neuro" data-value="Stroke" onclick="toggleComorbChip(this)">Stroke</button>
+          <button type="button" class="comorbidity-chip" data-name="neuro" data-value="Epilepsy" onclick="toggleComorbChip(this)">Epilepsy</button>
+          <button type="button" class="comorbidity-chip" data-name="neuro" data-value="MS" onclick="toggleComorbChip(this)">MS</button>
+        </div>
+        <div class="field" id="cond-neuro-year" style="min-width:130px;visibility:hidden;margin:0;">
+          <label>Year of Dx</label>
+          <input type="number" id="neuro-year" min="1950" max="2030" placeholder="e.g. 2015">
+        </div>
+      </div>
+    </div>
+
+    <!-- General Medical block -->
+    <div>
+      <div style="font-family:var(--mono);font-size:0.62rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">General Medical</div>
+      <div class="comorbidity-chips">
+        <button type="button" class="comorbidity-chip" data-name="dm"      data-value="Yes" onclick="toggleComorbChip(this)">Diabetes</button>
+        <button type="button" class="comorbidity-chip" data-name="htn"     data-value="Yes" onclick="toggleComorbChip(this)">Hypertension</button>
+        <button type="button" class="comorbidity-chip" data-name="ihd"     data-value="Yes" onclick="toggleComorbChip(this)">IHD</button>
+        <button type="button" class="comorbidity-chip" data-name="malig"   data-value="Yes" onclick="toggleComorbChip(this)">Active Malignancy</button>
+        <button type="button" class="comorbidity-chip" data-name="autoimm" data-value="Yes" onclick="toggleComorbChip(this)">Autoimmune Disease</button>
+        <button type="button" class="comorbidity-chip" data-name="ckd"     data-value="Yes" onclick="toggleComorbChip(this)">CKD</button>
+        <button type="button" class="comorbidity-chip" data-name="smoker"  data-value="Yes" onclick="toggleComorbChip(this)">Smoker</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden inputs to store chip values for data collection -->
+  <input type="hidden" id="comorbidity-dm"      value="No">
+  <input type="hidden" id="comorbidity-htn"     value="No">
+  <input type="hidden" id="comorbidity-ihd"     value="No">
+  <input type="hidden" id="comorbidity-malig"   value="No">
+  <input type="hidden" id="comorbidity-autoimm" value="No">
+  <input type="hidden" id="comorbidity-ckd"     value="No">
+  <input type="hidden" id="comorbidity-smoker"  value="No">
+  <input type="hidden" id="comorbidity-neuro"   value="">
+
   <div class="form-nav">
     <div class="nav-left"></div>
-    <span class="page-indicator">1 / 8</span>
+    <span class="page-indicator">1 / 7</span>
     <div class="nav-right">
       <button class="btn-next" onclick="showSection(1)">Next →</button>
     </div>
@@ -695,43 +785,17 @@
   </div>
   <div class="form-nav">
     <div class="nav-left"><button class="btn-prev" onclick="showSection(0)">← Back</button></div>
-    <span class="page-indicator">2 / 8</span>
+    <span class="page-indicator">2 / 7</span>
     <div class="nav-right">
       <button class="btn-next" onclick="showSection(2)">Next →</button>
     </div>
   </div>
 </div>
 
-<!-- ══════════ 3. DISEASE SEVERITY ══════════ -->
+<!-- ══════════ 4. DIAGNOSTICS & LABS ══════════ -->
 <div class="section" id="sec-2">
   <div class="section-header">
     <span class="section-num">03</span>
-    <span class="section-title">Disease Severity</span>
-    <span class="section-note">→ Disease_Severity</span>
-  </div>
-  <div class="form-grid" style="margin-bottom:18px">
-    <div class="field">
-      <label>BP-ID <span class="req">*</span></label>
-      <input type="text" class="pid-field" placeholder="BP-0001">
-    </div>
-  </div>
-  <div id="severity-assessments">
-    <!-- Cards injected by JS -->
-  </div>
-  <button class="btn-add" onclick="addSeverityAssessment()">＋ Add Assessment</button>
-  <div class="form-nav">
-    <div class="nav-left"><button class="btn-prev" onclick="showSection(1)">← Back</button></div>
-    <span class="page-indicator">3 / 8</span>
-    <div class="nav-right">
-      <button class="btn-next" onclick="showSection(3)">Next →</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ 4. DIAGNOSTICS & LABS ══════════ -->
-<div class="section" id="sec-3">
-  <div class="section-header">
-    <span class="section-num">04</span>
     <span class="section-title">Diagnostics & Labs</span>
     <span class="section-note">→ Diagnostics_Labs</span>
   </div>
@@ -945,126 +1009,18 @@
   </div>
 
   <div class="form-nav">
-    <div class="nav-left"><button class="btn-prev" onclick="showSection(2)">← Back</button></div>
-    <span class="page-indicator">4 / 8</span>
+    <div class="nav-left"><button class="btn-prev" onclick="showSection(1)">← Back</button></div>
+    <span class="page-indicator">3 / 7</span>
     <div class="nav-right">
-      <button class="btn-next" onclick="showSection(4)">Next →</button>
+      <button class="btn-next" onclick="showSection(3)">Next →</button>
     </div>
   </div>
 </div>
 
-<!-- ══════════ 5. COMORBIDITIES ══════════ -->
-<div class="section" id="sec-4">
+<!-- ══════════ 5. DRUG TRIGGERS ══════════ -->
+<div class="section" id="sec-3">
   <div class="section-header">
-    <span class="section-num">05</span>
-    <span class="section-title">Comorbidities</span>
-    <span class="section-note">→ Comorbidities</span>
-  </div>
-
-  <div class="form-grid" style="margin-bottom:16px;">
-    <div class="field">
-      <label>BP-ID <span class="req">*</span></label>
-      <input type="text" class="pid-field" placeholder="BP-0001">
-    </div>
-    <div class="field">
-      <label>Antipsychotic Treatment</label>
-      <div class="radio-group">
-        <label class="radio-opt"><input type="radio" name="antipsych" value="Yes"> Yes</label>
-        <label class="radio-opt"><input type="radio" name="antipsych" value="No"> No</label>
-      </div>
-    </div>
-  </div>
-
-  <!-- NEUROLOGICAL BLOCK -->
-  <div class="subsection" style="background:var(--surface);border:1px solid var(--border);padding:12px;border-radius:var(--radius);margin-bottom:16px;">
-    <div class="subsection-title" style="margin-bottom:10px;">Neurological</div>
-    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
-      <div class="field" style="flex:2;min-width:280px;">
-        <label>Diagnoses <span class="hint">check all that apply</span></label>
-        <div class="check-group">
-          <label class="check-opt"><input type="checkbox" name="neuro" value="Dementia" onchange="onNeuroChange()"> Dementia</label>
-          <label class="check-opt"><input type="checkbox" name="neuro" value="Parkinsons" onchange="onNeuroChange()"> Parkinson's</label>
-          <label class="check-opt"><input type="checkbox" name="neuro" value="Stroke" onchange="onNeuroChange()"> Stroke</label>
-          <label class="check-opt"><input type="checkbox" name="neuro" value="Epilepsy" onchange="onNeuroChange()"> Epilepsy</label>
-          <label class="check-opt"><input type="checkbox" name="neuro" value="MS" onchange="onNeuroChange()"> MS</label>
-        </div>
-      </div>
-      <div class="field" id="cond-neuro-year" style="flex:1;min-width:120px;visibility:hidden;">
-        <label>Year of Dx</label>
-        <input type="number" id="neuro-year" min="1950" max="2030" placeholder="e.g. 2015">
-      </div>
-    </div>
-  </div>
-
-  <!-- GENERAL MEDICAL PROFILE -->
-  <div class="subsection">
-    <div class="subsection-title">General Medical Profile</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
-      <div class="field">
-        <label>Diabetes</label>
-        <div class="radio-group">
-          <label class="radio-opt"><input type="radio" name="dm" value="Yes"> Yes</label>
-          <label class="radio-opt"><input type="radio" name="dm" value="No"> No</label>
-        </div>
-      </div>
-      <div class="field">
-        <label>Hypertension</label>
-        <div class="radio-group">
-          <label class="radio-opt"><input type="radio" name="htn" value="Yes"> Yes</label>
-          <label class="radio-opt"><input type="radio" name="htn" value="No"> No</label>
-        </div>
-      </div>
-      <div class="field">
-        <label>IHD</label>
-        <div class="radio-group">
-          <label class="radio-opt"><input type="radio" name="ihd" value="Yes"> Yes</label>
-          <label class="radio-opt"><input type="radio" name="ihd" value="No"> No</label>
-        </div>
-      </div>
-      <div class="field">
-        <label>Active Malignancy</label>
-        <div class="radio-group">
-          <label class="radio-opt"><input type="radio" name="malig" value="Yes"> Yes</label>
-          <label class="radio-opt"><input type="radio" name="malig" value="No"> No</label>
-        </div>
-      </div>
-      <div class="field">
-        <label>Autoimmune Disease</label>
-        <div class="radio-group">
-          <label class="radio-opt"><input type="radio" name="autoimm" value="Yes"> Yes</label>
-          <label class="radio-opt"><input type="radio" name="autoimm" value="No"> No</label>
-        </div>
-      </div>
-      <div class="field">
-        <label>CKD</label>
-        <div class="radio-group">
-          <label class="radio-opt"><input type="radio" name="ckd" value="Yes"> Yes</label>
-          <label class="radio-opt"><input type="radio" name="ckd" value="No"> No</label>
-        </div>
-      </div>
-      <div class="field">
-        <label>Smoker</label>
-        <div class="radio-group">
-          <label class="radio-opt"><input type="radio" name="smoker" value="Yes"> Yes</label>
-          <label class="radio-opt"><input type="radio" name="smoker" value="No"> No</label>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="form-nav">
-    <div class="nav-left"><button class="btn-prev" onclick="showSection(3)">← Back</button></div>
-    <span class="page-indicator">5 / 8</span>
-    <div class="nav-right">
-      <button class="btn-next" onclick="showSection(5)">Next →</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ 6. DRUG TRIGGERS ══════════ -->
-<div class="section" id="sec-5">
-  <div class="section-header">
-    <span class="section-num">06</span>
+    <span class="section-num">04</span>
     <span class="section-title">Drug Triggers</span>
     <span class="section-note">→ Drug_Triggers</span>
   </div>
@@ -1079,18 +1035,44 @@
   </div>
   <button class="btn-add" onclick="addDrugTriggerCard()">＋ Add Suspected Drug</button>
   <div class="form-nav">
-    <div class="nav-left"><button class="btn-prev" onclick="showSection(4)">← Back</button></div>
-    <span class="page-indicator">6 / 8</span>
+    <div class="nav-left"><button class="btn-prev" onclick="showSection(2)">← Back</button></div>
+    <span class="page-indicator">4 / 7</span>
     <div class="nav-right">
-      <button class="btn-next" onclick="showSection(6)">Next →</button>
+      <button class="btn-next" onclick="showSection(4)">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 3. DISEASE SEVERITY ══════════ -->
+<div class="section" id="sec-4">
+  <div class="section-header">
+    <span class="section-num">05</span>
+    <span class="section-title">Disease Severity</span>
+    <span class="section-note">→ Disease_Severity</span>
+  </div>
+  <div class="form-grid" style="margin-bottom:18px">
+    <div class="field">
+      <label>BP-ID <span class="req">*</span></label>
+      <input type="text" class="pid-field" placeholder="BP-0001">
+    </div>
+  </div>
+  <div id="severity-assessments">
+    <!-- Cards injected by JS -->
+  </div>
+  <button class="btn-add" onclick="addSeverityAssessment()">＋ Add Assessment</button>
+  <div class="form-nav">
+    <div class="nav-left"><button class="btn-prev" onclick="showSection(3)">← Back</button></div>
+    <span class="page-indicator">5 / 7</span>
+    <div class="nav-right">
+      <button class="btn-next" onclick="showSection(5)">Next →</button>
     </div>
   </div>
 </div>
 
 <!-- ══════════ 7. TREATMENT ══════════ -->
-<div class="section" id="sec-6">
+<div class="section" id="sec-5">
   <div class="section-header">
-    <span class="section-num">07</span>
+    <span class="section-num">06</span>
     <span class="section-title">Treatment Courses</span>
     <span class="section-note">→ Treatment_Courses</span>
   </div>
@@ -1105,18 +1087,18 @@
   </div>
   <button class="btn-add" onclick="addTreatmentLine()">＋ Add Treatment Line</button>
   <div class="form-nav">
-    <div class="nav-left"><button class="btn-prev" onclick="showSection(5)">← Back</button></div>
-    <span class="page-indicator">7 / 8</span>
+    <div class="nav-left"><button class="btn-prev" onclick="showSection(4)">← Back</button></div>
+    <span class="page-indicator">6 / 7</span>
     <div class="nav-right">
-      <button class="btn-next" onclick="showSection(7)">Next →</button>
+      <button class="btn-next" onclick="showSection(6)">Next →</button>
     </div>
   </div>
 </div>
 
 <!-- ══════════ 8. OUTCOMES ══════════ -->
-<div class="section" id="sec-7">
+<div class="section" id="sec-6">
   <div class="section-header">
-    <span class="section-num">08</span>
+    <span class="section-num">07</span>
     <span class="section-title">Outcomes</span>
     <span class="section-note">→ Outcomes</span>
   </div>
@@ -1263,12 +1245,11 @@
   </div>
 
   <div class="form-nav">
-    <div class="nav-left"><button class="btn-prev" onclick="showSection(6)">← Back</button></div>
-    <span class="page-indicator">8 / 8</span>
+    <div class="nav-left"><button class="btn-prev" onclick="showSection(5)">← Back</button></div>
+    <span class="page-indicator">7 / 7</span>
     <div class="nav-right"></div>
   </div>
 </div>
-
 </div><!-- /main -->
 
 <!-- Toast notification -->
@@ -1348,7 +1329,7 @@ function showSection(idx) {
   sections[idx].classList.add('active');
   navTabs[idx].classList.add('active');
   currentSection = idx;
-  document.getElementById('progress-fill').style.width = ((idx + 1) / 8 * 100) + '%';
+  document.getElementById('progress-fill').style.width = ((idx + 1) / 7 * 100) + '%';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1410,6 +1391,8 @@ function resetAllFields() {
   // Reset BPDAI display
   const bt = document.getElementById('bpdai-total');
   if (bt) bt.textContent = '—';
+  // Reset comorbidity chips
+  resetComorbChips();
   // Reset Other variant text field
   const vot = document.getElementById('variant-other-text');
   if (vot) { vot.value = ''; vot.style.display = 'none'; }
@@ -1480,6 +1463,8 @@ function prefillFromLookup(data) {
     }
     setSelect('ethnicity',   b.Ethnicity);
     setSelect('frailty',     b.Frailty_Score);
+    if (b.Date_of_Death) document.getElementById('date-of-death').value = b.Date_of_Death;
+    setSelect('cause-death-baseline', b.Cause_of_Death);
   }
   if (data.phenotype) {
     const p = data.phenotype;
@@ -1514,14 +1499,14 @@ function prefillFromLookup(data) {
     const c = data.comorbidities;
     setRadio('antipsych',       c.Antipsychotic_Treatment);
     document.getElementById('neuro-year').value = c.Year_Neurologic_Diagnosis || '';
-    setCheckboxes('neuro',      c.Neurological_Diagnoses);
-    setRadio('dm',              c.Diabetes);
-    setRadio('htn',             c.Hypertension);
-    setRadio('ihd',             c.IHD);
-    setRadio('malig',           c.Active_Malignancy);
-    setRadio('autoimm',         c.Autoimmune_Disease);
-    setRadio('ckd',            c.CKD);
-    setRadio('smoker',         c.Smoker);
+    prefillNeuroChips(c.Neurological_Diagnoses);
+    prefillComorbChip('dm',      c.Diabetes);
+    prefillComorbChip('htn',     c.Hypertension);
+    prefillComorbChip('ihd',     c.IHD);
+    prefillComorbChip('malig',   c.Active_Malignancy);
+    prefillComorbChip('autoimm', c.Autoimmune_Disease);
+    prefillComorbChip('ckd',     c.CKD);
+    prefillComorbChip('smoker',  c.Smoker);
     onNeuroChange();
   }
   if (data.drug_triggers) {
@@ -1683,9 +1668,9 @@ function onConfirmChange(cb) {
 //  TAB DOTS
 // ══════════════════════════════════════════════════════════════
 const SHEET_TAB_MAP = {
-  'Patient Baseline': 0, 'Clinical Phenotype': 1, 'Disease Severity': 2,
-  'Diagnostics Labs': 3, 'Comorbidities': 4, 'Drug Triggers': 5,
-  'Treatment Courses': 6, 'Outcomes': 7
+  'Patient Baseline': 0, 'Clinical Phenotype': 1, 'Diagnostics Labs': 2,
+  'Drug Triggers': 3, 'Disease Severity': 4,
+  'Treatment Courses': 5, 'Outcomes': 6
 };
 
 function updateTabDots(sheetsFound) {
@@ -1746,9 +1731,67 @@ function onDrugTriggerChange() {
 }
 
 function onNeuroChange() {
-  const anyChecked = document.querySelectorAll('input[name="neuro"]:checked').length > 0;
+  const neuroVal = document.getElementById('comorbidity-neuro')?.value || '';
+  const anyChecked = neuroVal.trim().length > 0;
   const el = document.getElementById('cond-neuro-year');
   if (el) el.style.visibility = anyChecked ? 'visible' : 'hidden';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  COMORBIDITY CHIP TOGGLE
+// ══════════════════════════════════════════════════════════════
+function toggleComorbChip(btn) {
+  const name  = btn.dataset.name;
+  const value = btn.dataset.value;
+  btn.classList.toggle('active');
+
+  if (name === 'neuro') {
+    // Collect all active neuro chips into comma-separated string
+    const activeVals = Array.from(
+      document.querySelectorAll('.comorbidity-chip[data-name="neuro"].active')
+    ).map(b => b.dataset.value);
+    const hidden = document.getElementById('comorbidity-neuro');
+    if (hidden) hidden.value = activeVals.join(', ');
+    onNeuroChange();
+  } else {
+    // Single Yes/No chip
+    const hidden = document.getElementById('comorbidity-' + name);
+    if (hidden) hidden.value = btn.classList.contains('active') ? 'Yes' : 'No';
+  }
+}
+
+function prefillComorbChip(name, value) {
+  if (!value || value !== 'Yes') return;
+  const btn = document.querySelector(`.comorbidity-chip[data-name="${name}"]`);
+  if (btn) {
+    btn.classList.add('active');
+    const hidden = document.getElementById('comorbidity-' + name);
+    if (hidden) hidden.value = 'Yes';
+  }
+}
+
+function prefillNeuroChips(csvValue) {
+  if (!csvValue) return;
+  const values = csvValue.split(',').map(v => v.trim());
+  values.forEach(v => {
+    const btn = document.querySelector(`.comorbidity-chip[data-name="neuro"][data-value="${v}"]`);
+    if (btn) btn.classList.add('active');
+  });
+  const hidden = document.getElementById('comorbidity-neuro');
+  if (hidden) hidden.value = values.join(', ');
+  onNeuroChange();
+}
+
+function resetComorbChips() {
+  document.querySelectorAll('.comorbidity-chip').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  ['dm','htn','ihd','malig','autoimm','ckd','smoker'].forEach(name => {
+    const h = document.getElementById('comorbidity-' + name);
+    if (h) h.value = 'No';
+  });
+  const hn = document.getElementById('comorbidity-neuro');
+  if (hn) hn.value = '';
 }
 
 // Init conditional state on page load
@@ -1778,24 +1821,23 @@ function hasSectionData(idx) {
   switch (idx) {
     case 0: return !!(getRadio('sex') || val('age-dx') || val('dx-date'));
     case 1: return !!(getClinicalVariant() || getRadio('mucosal') || getCheckboxes('dist'));
-    case 2: {
-      const first = document.querySelector('.severity-card');
-      if (!first) return false;
-      return !!(first.querySelector('.sev-skin')?.value || first.querySelector('.sev-nrs')?.value);
-    }
-    case 3: return !!(val('lab-year') || getRadio('dif-igg') || val('bp180') || getRadio('subepidermal'));
-    case 4: return !!(getRadio('antipsych') || getCheckboxes('neuro') || getRadio('dm'));
-    case 5: {
+    case 2: return !!(val('lab-year') || getRadio('dif-igg') || val('bp180') || getRadio('subepidermal'));
+    case 3: {
       const first = document.querySelector('.drug-trigger-card');
       if (!first) return false;
       return !!first.querySelector('input[type=radio]:checked');
     }
-    case 6: {
+    case 4: {
+      const first = document.querySelector('.severity-card');
+      if (!first) return false;
+      return !!(first.querySelector('.sev-skin')?.value || first.querySelector('.sev-nrs')?.value);
+    }
+    case 5: {
       const firstRow = document.querySelector('.treatment-line-item');
       if (!firstRow) return false;
       return !!(firstRow.querySelector('.tx-drug')?.value || firstRow.querySelector('.tx-route')?.value);
     }
-    case 7: return !!(val('followup-date') || getRadio('crot') || getRadio('relapse'));
+    case 6: return !!(val('followup-date') || getRadio('crot') || getRadio('relapse'));
   }
   return false;
 }
@@ -1804,7 +1846,25 @@ function hasSectionData(idx) {
 //  SEND ONE SECTION (shared by manual save + auto-save)
 // ══════════════════════════════════════════════════════════════
 async function sendSection(idx, isRetry = false) {
-  const payload    = collectSection(idx);
+  const payload = collectSection(idx);
+
+  // Multi-sheet save (e.g. Baseline saves both Patient_Baseline and Comorbidities)
+  if (payload.multiSheet) {
+    for (const save of payload.saves) {
+      const params = new URLSearchParams({ token: SECRET_TOKEN, sheet: save.sheet, row: JSON.stringify(save.row) });
+      const resp   = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
+      const json   = await resp.json();
+      if (json.status === 'error') {
+        if (!isRetry && json.message && json.message.includes('Server busy')) {
+          await new Promise(r => setTimeout(r, 1000));
+          return await sendSection(idx, true);
+        }
+        throw new Error(json.message);
+      }
+    }
+    return;
+  }
+
   const rowsToSend = payload.rows || [payload.row];
   for (const row of rowsToSend) {
     const params = new URLSearchParams({ token: SECRET_TOKEN, sheet: payload.sheet, row: JSON.stringify(row) });
@@ -1844,7 +1904,7 @@ async function saveAllSections() {
     return;
   }
 
-  const toSave = [0,1,2,3,4,5,6,7].filter(i => hasSectionData(i));
+  const toSave = [0,1,2,3,4,5,6].filter(i => hasSectionData(i));
   if (toSave.length === 0) { showToast('No data filled in yet', 'error'); return; }
 
   // Optimistic UI — mark all as saving immediately
@@ -2473,37 +2533,36 @@ function collectSection(idx) {
     case 0: {
       const dxDate  = val('dx-date');
       const dxYear  = dxDate ? new Date(dxDate).getFullYear() : '';
-      return { sheet: SHEET_NAMES[0], row: [
+      // Baseline row
+      const baselineRow = [
         pid, getRadio('sex'), val('age-dx'), dxYear,
         val('ethnicity'), val('frailty'),
         val('symptoms-date'), val('symptoms-to-dx-days'),
+        val('date-of-death'), val('cause-death-baseline'),
         collector, ts
-      ]};
+      ];
+      // Comorbidities row (still saves to Comorbidities sheet)
+      const comorbRow = [
+        pid, getRadio('antipsych'), val('neuro-year'),
+        val('comorbidity-neuro'),
+        val('comorbidity-dm'), val('comorbidity-htn'),
+        val('comorbidity-ihd'), val('comorbidity-malig'),
+        val('comorbidity-autoimm'), val('comorbidity-ckd'),
+        val('comorbidity-smoker'), collector, ts
+      ];
+      return {
+        multiSheet: true,
+        saves: [
+          { sheet: SHEET_NAMES[0], row: baselineRow },
+          { sheet: SHEET_NAMES[4], row: comorbRow }
+        ]
+      };
     }
     case 1: return { sheet: SHEET_NAMES[1], row: [
       pid, getClinicalVariant(), getRadio('mucosal'),
       getCheckboxes('dist'), getRadio('pruritus-present'), collector, ts
     ]};
-    case 2: {
-      const rows = [];
-      document.querySelectorAll('.severity-card').forEach(card => {
-        const skin    = card.querySelector('.sev-skin')?.value   || '';
-        const mucosa  = card.querySelector('.sev-mucosa')?.value || '';
-        const total   = card.querySelector('.sev-total')?.textContent.replace('—','') || '';
-        const months  = card.querySelector('.sev-months')?.value || '';
-        rows.push([
-          pid,
-          card.querySelector('.sev-type')?.value   || '',
-          months,
-          skin, mucosa, total,
-          card.querySelector('.sev-nrs')?.value    || '',
-          card.querySelector('.sev-dlqi')?.value   || '',
-          collector, ts
-        ]);
-      });
-      return { sheet: SHEET_NAMES[2], rows };
-    }
-    case 3: return { sheet: SHEET_NAMES[3], row: [
+    case 2: return { sheet: SHEET_NAMES[3], row: [
       pid, val('lab-year'), getRadio('dif-igg'), getRadio('dif-c3'),
       getRadio('iif'), val('iif-titer'), val('bp180'), val('bp230'),
       val('total-ige'), val('peak-ige'), val('peak-ige-date'),
@@ -2512,13 +2571,7 @@ function collectSection(idx) {
       getRadio('subepidermal'), getRadio('biopsy-eos'),
       collector, ts
     ]};
-    case 4: return { sheet: SHEET_NAMES[4], row: [
-      pid, getRadio('antipsych'), val('neuro-year'),
-      getCheckboxes('neuro'), getRadio('dm'), getRadio('htn'),
-      getRadio('ihd'), getRadio('malig'), getRadio('autoimm'), getRadio('ckd'),
-      getRadio('smoker'), collector, ts
-    ]};
-    case 5: {
+    case 3: {
       const rows = [];
       document.querySelectorAll('.drug-trigger-card').forEach((card, i) => {
         const n = i + 1;
@@ -2543,7 +2596,26 @@ function collectSection(idx) {
       });
       return { sheet: SHEET_NAMES[5], rows };
     }
-    case 6: {
+    case 4: {
+      const rows = [];
+      document.querySelectorAll('.severity-card').forEach(card => {
+        const skin    = card.querySelector('.sev-skin')?.value   || '';
+        const mucosa  = card.querySelector('.sev-mucosa')?.value || '';
+        const total   = card.querySelector('.sev-total')?.textContent.replace('—','') || '';
+        const months  = card.querySelector('.sev-months')?.value || '';
+        rows.push([
+          pid,
+          card.querySelector('.sev-type')?.value   || '',
+          months,
+          skin, mucosa, total,
+          card.querySelector('.sev-nrs')?.value    || '',
+          card.querySelector('.sev-dlqi')?.value   || '',
+          collector, ts
+        ]);
+      });
+      return { sheet: SHEET_NAMES[2], rows };
+    }
+    case 5: {
       const lines = [];
       document.querySelectorAll('.treatment-line-item').forEach((row, i) => {
         const get   = cls => row.querySelector(cls)?.value || '';
@@ -2562,7 +2634,7 @@ function collectSection(idx) {
       });
       return { sheet: SHEET_NAMES[6], rows: lines };
     }
-    case 7: return { sheet: SHEET_NAMES[7], row: [
+    case 6: return { sheet: SHEET_NAMES[7], row: [
       pid,
       val('followup-months'),     val('followup-date'),
       getRadio('crot'),           getRadio('crmt'),
