@@ -837,7 +837,7 @@
 
       <!-- IgE -->
       <div style="display:flex;flex-direction:column;gap:3px;">
-        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">Total IgE</span>
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">Total IgE at Dx</span>
         <div class="input-affix">
           <input type="number" id="total-ige" min="0" placeholder="450" style="max-width:90px;" tabindex="4">
           <span class="affix-unit">IU/mL</span>
@@ -917,6 +917,25 @@
           <input type="number" id="albumin" min="0" max="6" step="0.1" placeholder="3.5" tabindex="7">
           <span class="affix-unit">g/dL</span>
         </div>
+      </div>
+
+      <span style="font-family:var(--mono);color:var(--border);margin-bottom:20px;">|</span>
+
+      <!-- IgE Peak -->
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">IgE Peak</span>
+        <div class="input-affix">
+          <input type="number" id="peak-ige" min="0" placeholder="800" style="max-width:85px;" tabindex="8">
+          <span class="affix-unit">IU/mL</span>
+        </div>
+      </div>
+
+      <span style="font-family:var(--mono);font-size:0.72rem;color:var(--text-muted);margin-bottom:7px;">on</span>
+
+      <!-- IgE Peak Date -->
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <span style="font-family:var(--mono);font-size:0.58rem;color:var(--text-muted);">IgE Peak Date</span>
+        <input type="date" id="peak-ige-date">
       </div>
 
     </div>
@@ -1483,7 +1502,9 @@ function prefillFromLookup(data) {
     syncIIFTiterButtons(l.IIF_Titer || '');
     document.getElementById('bp180').value       = l.Anti_BP180_IgG       || '';
     document.getElementById('bp230').value       = l.Anti_BP230_IgG       || '';
-    document.getElementById('total-ige').value   = l.Total_IgE            || '';
+    document.getElementById('total-ige').value        = l.Total_IgE                  || '';
+    document.getElementById('peak-ige').value          = l.Peak_IgE                   || '';
+    document.getElementById('peak-ige-date').value     = l.Peak_IgE_Date              || '';
     document.getElementById('eosinophils').value      = l.Absolute_Eosinophils     || '';
     document.getElementById('peak-eosinophils').value = l.Peak_Absolute_Eosinophils || '';
     document.getElementById('peak-eos-date').value    = l.Peak_Eos_Date              || '';
@@ -2485,7 +2506,8 @@ function collectSection(idx) {
     case 3: return { sheet: SHEET_NAMES[3], row: [
       pid, val('lab-year'), getRadio('dif-igg'), getRadio('dif-c3'),
       getRadio('iif'), val('iif-titer'), val('bp180'), val('bp230'),
-      val('total-ige'), val('eosinophils'), val('peak-eosinophils'), val('peak-eos-date'),
+      val('total-ige'), val('peak-ige'), val('peak-ige-date'),
+      val('eosinophils'), val('peak-eosinophils'), val('peak-eos-date'),
       val('albumin'),
       getRadio('subepidermal'), getRadio('biopsy-eos'),
       collector, ts
